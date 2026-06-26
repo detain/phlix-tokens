@@ -1,17 +1,16 @@
 # @phlix/tokens — CI
 #
 # Deterministic gate: regenerate tokens (must be a no-op vs the committed
-# artifact), typecheck, build, and run the full vitest suite. Manual dispatch by
-# default (no runner wired to this repo yet); uncomment the triggers to make it
-# a required PR check.
+# artifact), typecheck, build, and run the full vitest suite. Runs on every push
+# to master and on pull requests, plus manual dispatch.
 name: tokens-ci
 
 on:
   workflow_dispatch:
-  # pull_request:
-  #   branches: [master]
-  # push:
-  #   branches: [master]
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
 
 jobs:
   test:
@@ -31,4 +30,8 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
+      # The committed dist/ artifacts (incl. dist/tokens.json) must match a fresh
+      # build — fail if a stale dist was committed.
+      - name: Verify committed dist is up to date
+        run: git diff --exit-code -- dist
       - run: npm run test:run

@@ -7,6 +7,9 @@
  *                               relative @import lines inlined, in index order,
  *                               so `import '@phlix/tokens/style.css'` works
  *                               standalone with no further resolution.
+ *   · dist/tokens.json        ← the generated resolved-token map copied from
+ *                               src/, so the `@phlix/tokens/tokens.json` export
+ *                               ships in the npm tarball (src/ is not in files).
  *
  * Deterministic, no network. Run as part of `npm run build`.
  */
@@ -16,7 +19,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SRC_CSS = join(__dirname, '..', 'src', 'css');
+const SRC = join(__dirname, '..', 'src');
+const SRC_CSS = join(SRC, 'css');
 const DIST = join(__dirname, '..', 'dist');
 const DIST_CSS = join(DIST, 'css');
 
@@ -37,5 +41,10 @@ const out = indexSrc.replace(importRe, (_m, rel) => {
 });
 writeFileSync(join(DIST, 'style.css'), out);
 
- 
-console.log(`built dist/style.css + copied ${files.length} css files to dist/css/`);
+// 3. Copy the generated resolved-token map into dist so the
+//    `@phlix/tokens/tokens.json` export ships (src/ is not in `files`).
+copyFileSync(join(SRC, 'tokens.generated.json'), join(DIST, 'tokens.json'));
+
+console.log(
+  `built dist/style.css + dist/tokens.json + copied ${files.length} css files to dist/css/`,
+);
