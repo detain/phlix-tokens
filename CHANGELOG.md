@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-06-26
+
+### Fixed
+
+- Ship the `@phlix/tokens/tokens.json` export. `build-css.mjs` now copies
+  `src/tokens.generated.json` to `dist/tokens.json`, and the export points at
+  `./dist/tokens.json` (which is committed + in `files`) instead of
+  `./src/tokens.generated.json` (which was never in the npm tarball, so
+  `import '@phlix/tokens/tokens.json'` broke on a packed/published install).
+- Enable the CI gate. The `push` (master) and `pull_request` triggers were
+  commented out, leaving only `workflow_dispatch`, so the README's "CI fails on
+  stale artifacts" claim never held. CI now also guards committed `dist/` drift
+  via `git diff --exit-code -- dist`.
+
 ## [0.1.0] - 2026-06-26
 
 ### Added

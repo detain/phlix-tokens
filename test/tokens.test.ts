@@ -74,11 +74,29 @@ describe('themes metadata', () => {
 });
 
 describe('resolveTheme', () => {
+  it('leaves no unresolved var() anywhere in tokens.base', () => {
+    const base = tokens.base;
+    const keys = Object.keys(base);
+    expect(keys.length).toBeGreaterThan(0);
+    for (const key of keys) {
+      expect(base[key]).not.toContain('var(');
+    }
+  });
+
   for (const t of THEMES) {
     it(`resolves --bg/--accent/--text to concrete (non-var) values for ${t}`, () => {
       const m = resolveTheme(t);
       for (const key of ['--bg', '--accent', '--text']) {
         expect(m[key]).toBeTruthy();
+        expect(m[key]).not.toContain('var(');
+      }
+    });
+
+    it(`leaves no unresolved var() in any resolved value for ${t}`, () => {
+      const m = resolveTheme(t);
+      const keys = Object.keys(m);
+      expect(keys.length).toBeGreaterThan(0);
+      for (const key of keys) {
         expect(m[key]).not.toContain('var(');
       }
     });
