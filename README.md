@@ -1,5 +1,11 @@
 # @phlix/tokens
 
+[![CI](https://github.com/detain/phlix-tokens/actions/workflows/ci.yml/badge.svg)](https://github.com/detain/phlix-tokens/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/detain/phlix-tokens/graph/badge.svg)](https://codecov.io/gh/detain/phlix-tokens)
+[![Version](https://img.shields.io/github/v/tag/detain/phlix-tokens?label=version&sort=semver)](https://github.com/detain/phlix-tokens/tags)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+
 Framework-agnostic **design tokens** for Phlix — the single source of truth for
 theme tokens shared across every client so they never drift:
 
