@@ -311,3 +311,113 @@ describe('applyTokenAttributes', () => {
     expect(t.attrs[DATA_THEME]).toBe('daylight');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Step PARITY — light/dark theme parity CI guard.
+// Every theme map (tokens.nocturne / daylight / midnight) must declare the SAME
+// key set. This hardens against future B1-class drift (a token added to one
+// theme block but not the others). There are currently NO intentional
+// per-theme-only keys, so no allow-list is needed; if one is ever introduced,
+// add it to THEME_ONLY_ALLOW below rather than weakening the assertion.
+// ---------------------------------------------------------------------------
+describe('theme parity', () => {
+  // Intentional per-theme-only keys, by theme name. Keep empty unless a real
+  // per-theme-only token is added — then list it explicitly here.
+  const THEME_ONLY_ALLOW: Record<string, string[]> = {
+    nocturne: [],
+    daylight: [],
+    midnight: [],
+  };
+
+  const expectedKeys = Object.keys(tokens.nocturne).sort();
+
+  it('nocturne declares a non-empty key set', () => {
+    expect(expectedKeys.length).toBeGreaterThan(0);
+  });
+
+  for (const t of THEMES) {
+    it(`${t} declares the same key set as nocturne`, () => {
+      const allow = new Set(THEME_ONLY_ALLOW[t] ?? []);
+      const actual = Object.keys(tokens[t])
+        .filter((k) => !allow.has(k))
+        .sort();
+      const expected = expectedKeys.filter(
+        (k) => !(THEME_ONLY_ALLOW.nocturne ?? []).includes(k),
+      );
+      expect(actual).toEqual(expected);
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Step CONTRAST — WCAG contrast-pair CI guard.
+// For each theme, compute the WCAG 2.x contrast ratio between the key
+// foreground/background pairs from the RESOLVED theme values and assert AA
+// thresholds. Uses the exported `parseHex` + `luminance`. A deliberately
+// low-contrast pair (e.g. swapping --text for --text-faint) would trip these.
+//
+// Measured ratios (current values, computed at authoring time 2026-06-28):
+//   theme      text/bg  text/surface  on-accent/accent  muted/surface
+//   nocturne    16.87      15.78           8.36              8.21
+//   daylight    14.18      15.68           8.36              6.28
+//   midnight    16.93      16.11           8.36              7.51
+// All pairs clear AA 4.5:1 with margin — including --text-muted on --surface
+// (lowest = daylight 6.28), so the full 4.5:1 threshold is asserted for muted
+// (no large-text 3:1 relaxation required).
+// ---------------------------------------------------------------------------
+describe('contrast', () => {
+  const AA = 4.5;
+
+  /** WCAG contrast ratio between two hex colors: (Lmax + 0.05) / (Lmin + 0.05). */
+  function contrastRatio(hexA: string, hexB: string): number {
+    const a = parseHex(hexA);
+    const b = parseHex(hexB);
+    if (!a || !b) throw new Error(`unparseable hex in contrast pair: ${hexA} / ${hexB}`);
+    const la = luminance(a);
+    const lb = luminance(b);
+    const hi = Math.max(la, lb);
+    const lo = Math.min(la, lb);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  it('contrastRatio computes the canonical extremes', () => {
+    // black on white is the maximal 21:1
+    expect(contrastRatio('#000000', '#ffffff')).toBeCloseTo(21, 5);
+    // identical colors are 1:1
+    expect(contrastRatio('#808080', '#808080')).toBeCloseTo(1, 5);
+  });
+
+  for (const t of THEMES) {
+    it(`${t} meets WCAG AA for the key foreground/background pairs`, () => {
+      const m = resolveTheme(t);
+      const text = m['--text'];
+      const bg = m['--bg'];
+      const surface = m['--surface'];
+      const accent = m['--accent'];
+      const onAccent = m['--text-on-accent'];
+      const muted = m['--text-muted'];
+
+      // --text on --bg and on --surface
+      expect(
+        contrastRatio(text, bg),
+        `${t}: --text on --bg`,
+      ).toBeGreaterThanOrEqual(AA);
+      expect(
+        contrastRatio(text, surface),
+        `${t}: --text on --surface`,
+      ).toBeGreaterThanOrEqual(AA);
+
+      // --text-on-accent on --accent (the B2-unified ink, provably readable on amber)
+      expect(
+        contrastRatio(onAccent, accent),
+        `${t}: --text-on-accent on --accent`,
+      ).toBeGreaterThanOrEqual(AA);
+
+      // --text-muted on --surface — current values clear full AA (no 3:1 relaxation)
+      expect(
+        contrastRatio(muted, surface),
+        `${t}: --text-muted on --surface`,
+      ).toBeGreaterThanOrEqual(AA);
+    });
+  }
+});
