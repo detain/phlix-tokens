@@ -53,6 +53,19 @@ export function luminance({ r, g, b }: RGB): number {
  * role contract in colors.css; consumers can use this to clear an override and
  * fall back to the theme amber.
  */
+/**
+ * Single source of truth for the accent "ink" (the readable text/icon color laid
+ * on top of an accent fill). `deriveAccentVars` (the runtime accent-picker path)
+ * and the static CSS `--accent-contrast` in `src/css/colors.css` MUST agree on
+ * these values — they previously drifted (`#1a1205` here vs `#2a1804` in CSS).
+ *
+ * `ACCENT_INK_DARK` (`#2a1804`) is the canonical dark ink and matches
+ * `--accent-contrast` in colors.css line ~30 verbatim, so the CSS default is
+ * unchanged. `ACCENT_INK_LIGHT` (`#fff8ec`) equals `--amber-50`.
+ */
+export const ACCENT_INK_DARK = '#2a1804';
+export const ACCENT_INK_LIGHT = '#fff8ec';
+
 export const ACCENT_KEYS = [
   '--accent',
   '--accent-hover',
@@ -70,7 +83,9 @@ export const ACCENT_KEYS = [
 export function deriveAccentVars(hex: string): Record<string, string> | null {
   const rgb = parseHex(hex);
   if (!rgb) return null;
-  const contrast = luminance(rgb) > 0.45 ? '#1a1205' : '#fff8ec';
+  // Single source of truth shared with colors.css `--accent-contrast`; see
+  // ACCENT_INK_DARK / ACCENT_INK_LIGHT above.
+  const contrast = luminance(rgb) > 0.45 ? ACCENT_INK_DARK : ACCENT_INK_LIGHT;
   return {
     '--accent': toHex(rgb),
     '--accent-hover': toHex(lighten(rgb, 0.12)),

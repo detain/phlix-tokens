@@ -39,5 +39,7 @@ export {
   rgba,
   luminance,
   ACCENT_KEYS,
+  ACCENT_INK_DARK,
+  ACCENT_INK_LIGHT,
   deriveAccentVars,
 } from './accent';

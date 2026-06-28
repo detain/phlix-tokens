@@ -908,7 +908,7 @@ function l({ r: e, g: t, b: n }) {
 	});
 	return .2126 * r[0] + .7152 * r[1] + .0722 * r[2];
 }
-var u = [
+var u = "#2a1804", d = "#fff8ec", f = [
 	"--accent",
 	"--accent-hover",
 	"--accent-active",
@@ -916,10 +916,10 @@ var u = [
 	"--accent-ring",
 	"--accent-contrast"
 ];
-function d(e) {
+function p(e) {
 	let t = r(e);
 	if (!t) return null;
-	let n = l(t) > .45 ? "#1a1205" : "#fff8ec";
+	let n = l(t) > .45 ? u : d;
 	return {
 		"--accent": a(t),
 		"--accent-hover": a(o(t, .12)),
@@ -931,20 +931,20 @@ function d(e) {
 }
 //#endregion
 //#region src/themes.ts
-var f = [
+var m = [
 	"nocturne",
 	"daylight",
 	"midnight"
-], p = ["comfortable", "compact"], m = "nocturne", h = "comfortable", g = "data-theme", _ = "data-density", v = "data-reduced-motion";
-function y(e, t) {
+], h = ["comfortable", "compact"], g = "nocturne", _ = "comfortable", v = "data-theme", y = "data-density", b = "data-reduced-motion";
+function x(e, t) {
 	let n = e ?? (typeof document < "u" ? document.documentElement : null);
 	if (!n) return;
-	n.setAttribute(g, t.theme), n.setAttribute(_, t.density), t.reducedMotion ? n.setAttribute(v, "true") : n.removeAttribute(v);
-	let r = t.accent ? d(t.accent) : null;
+	n.setAttribute(v, t.theme), n.setAttribute(y, t.density), t.reducedMotion ? n.setAttribute(b, "true") : n.removeAttribute(b);
+	let r = t.accent ? p(t.accent) : null;
 	if (r) for (let [e, t] of Object.entries(r)) n.style.setProperty(e, t);
-	else for (let e of u) n.style.removeProperty(e);
+	else for (let e of f) n.style.removeProperty(e);
 }
 //#endregion
-export { u as ACCENT_KEYS, _ as DATA_DENSITY, v as DATA_REDUCED_MOTION, g as DATA_THEME, h as DEFAULT_DENSITY, m as DEFAULT_THEME, p as DENSITIES, f as THEMES, y as applyTokenAttributes, s as darken, d as deriveAccentVars, o as lighten, l as luminance, r as parseHex, n as resolveTheme, c as rgba, a as toHex, e as tokens };
+export { u as ACCENT_INK_DARK, d as ACCENT_INK_LIGHT, f as ACCENT_KEYS, y as DATA_DENSITY, b as DATA_REDUCED_MOTION, v as DATA_THEME, _ as DEFAULT_DENSITY, g as DEFAULT_THEME, h as DENSITIES, m as THEMES, x as applyTokenAttributes, s as darken, p as deriveAccentVars, o as lighten, l as luminance, r as parseHex, n as resolveTheme, c as rgba, a as toHex, e as tokens };
 
 //# sourceMappingURL=phlix-tokens.js.map

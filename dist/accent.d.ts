@@ -26,6 +26,18 @@ export declare function luminance({ r, g, b }: RGB): number;
  * role contract in colors.css; consumers can use this to clear an override and
  * fall back to the theme amber.
  */
+/**
+ * Single source of truth for the accent "ink" (the readable text/icon color laid
+ * on top of an accent fill). `deriveAccentVars` (the runtime accent-picker path)
+ * and the static CSS `--accent-contrast` in `src/css/colors.css` MUST agree on
+ * these values — they previously drifted (`#1a1205` here vs `#2a1804` in CSS).
+ *
+ * `ACCENT_INK_DARK` (`#2a1804`) is the canonical dark ink and matches
+ * `--accent-contrast` in colors.css line ~30 verbatim, so the CSS default is
+ * unchanged. `ACCENT_INK_LIGHT` (`#fff8ec`) equals `--amber-50`.
+ */
+export declare const ACCENT_INK_DARK = "#2a1804";
+export declare const ACCENT_INK_LIGHT = "#fff8ec";
 export declare const ACCENT_KEYS: readonly ["--accent", "--accent-hover", "--accent-active", "--accent-soft", "--accent-ring", "--accent-contrast"];
 /**
  * Derive the full accent role set from a single accent hex — used when the user
