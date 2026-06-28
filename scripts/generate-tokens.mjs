@@ -125,6 +125,16 @@ function main() {
     'density:compact': {},
   };
 
+  /**
+   * Source file for each `base` (`:root`) declaration, last-write-wins in lockstep
+   * with `groups.base` above. Used to categorize base vars by their originating
+   * file (e.g. typography.css → typography) instead of by guessing from the key
+   * prefix — see `categoryFor` below. This is what keeps colors.css keys such as
+   * `--text-muted` out of `tokens.typography` (B1) and makes adding a new token
+   * family a one-file affair (CQ2).
+   */
+  const baseSource = {};
+
   for (const file of files) {
     if (file === 'index.css') continue; // index only @imports + has reset rules (no tokens)
     const css = readFileSync(join(CSS_DIR, file), 'utf8');
@@ -132,7 +142,10 @@ function main() {
       for (const sel of rule.selectors) {
         const g = classify(sel);
         if (!g) continue;
-        for (const d of rule.decls) groups[g][d.prop] = d.value;
+        for (const d of rule.decls) {
+          groups[g][d.prop] = d.value;
+          if (g === 'base') baseSource[d.prop] = file;
+        }
       }
     }
   }
@@ -157,24 +170,30 @@ function main() {
 
   // Categorized base subsets — partition base vars by token family for the
   // `tokens.spacing/radius/shadow/motion/typography` convenience objects.
+  //
+  // The family is derived from the var's SOURCE FILE, not from a key-prefix
+  // guess. This fixes B1: colors.css declares `--text`, `--text-muted`,
+  // `--text-subtle`, `--text-faint`, `--text-on-accent` (which a prefix scheme
+  // mis-read as `typography` because of the `--text-` prefix). `colors.css` maps
+  // to `null` here, so color keys stay only in `tokens.base` / theme maps and the
+  // `resolveTheme` map — never in a `tokens.<family>` convenience object. It also
+  // closes CQ2: a new `*.css` token family maps cleanly with one lookup entry and
+  // never silently lands in the wrong (or no) family.
+  const FILE_FAMILY = {
+    'spacing.css': 'spacing',
+    'radius.css': 'radius',
+    'shadow.css': 'shadow',
+    'motion.css': 'motion',
+    'typography.css': 'typography',
+    'colors.css': null,
+    'density.css': null, // density is emitted separately as a per-variant map
+  };
   const categoryFor = (key) => {
-    if (key.startsWith('--space-')) return 'spacing';
-    if (key.startsWith('--radius-')) return 'radius';
-    if (
-      key.startsWith('--shadow-') ||
-      key.startsWith('--glow-')
-    )
-      return 'shadow';
-    if (key.startsWith('--ease-') || key.startsWith('--dur-')) return 'motion';
-    if (
-      key.startsWith('--font-') ||
-      key.startsWith('--fw-') ||
-      key.startsWith('--text-') ||
-      key.startsWith('--tracking-') ||
-      key.startsWith('--leading-')
-    )
-      return 'typography';
-    return null;
+    const file = baseSource[key];
+    if (file === undefined) return null;
+    // Unknown source files default to null (ignored) rather than being guessed
+    // into a family — fail closed so a new file is a deliberate FILE_FAMILY add.
+    return Object.prototype.hasOwnProperty.call(FILE_FAMILY, file) ? FILE_FAMILY[file] : null;
   };
   const spacing = {};
   const radius = {};

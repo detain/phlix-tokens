@@ -403,10 +403,6 @@ var e = {
 		}
 	},
 	typography: {
-		"--text-muted": "#b8ab98",
-		"--text-subtle": "#918370",
-		"--text-faint": "#544a3f",
-		"--text-on-accent": "#2a1804",
 		"--font-display": "'Fraunces', 'Fraunces Fallback', Georgia, 'Times New Roman', serif",
 		"--font-sans": "'Hanken Grotesk', 'Hanken Grotesk Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif",
 		"--font-mono": "'JetBrains Mono', 'JetBrains Mono Fallback', ui-monospace, SFMono-Regular, Menlo, monospace",
