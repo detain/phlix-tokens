@@ -8,6 +8,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Unify the two accent-contrast ("ink on accent") systems to a single source of
+  truth (B2). The runtime accent picker (`deriveAccentVars`) and the static CSS
+  `--accent-contrast` in `colors.css` had drifted: JS returned `#1a1205` for a
+  light accent while CSS declared `#2a1804`. `src/accent.ts` now exports
+  `ACCENT_INK_DARK = '#2a1804'` and `ACCENT_INK_LIGHT = '#fff8ec'` constants and
+  `deriveAccentVars` references them, with a cross-reference comment in both
+  `accent.ts` and `colors.css`. `#2a1804` is the canonical dark ink, so the CSS
+  default and all generated/dist artifacts are **unchanged**; the only behavioral
+  change is that `deriveAccentVars` now returns `#2a1804` (was `#1a1205`) as the
+  dark contrast for light accents, matching the CSS default.
 - Stop color tokens leaking into `tokens.typography` (B1). The generator now
   categorizes base custom properties by their **source file** instead of by
   key-prefix guessing, so the colors declared in `colors.css` — `--text-muted`,
