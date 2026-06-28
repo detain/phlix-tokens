@@ -6,6 +6,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Theme parity CI guard (PARITY). A new `theme parity` test suite asserts that
+  all three theme maps (`tokens.nocturne` / `tokens.daylight` / `tokens.midnight`)
+  declare the **same key set** (currently 64 keys each, no per-theme-only keys).
+  Enforced by the existing `test:run` CI step — no workflow change. Hardens
+  against future B1-class drift where a token is added to one theme but not the
+  others. An explicit (currently empty) allow-list is provided for any future
+  intentional per-theme-only key, so the assertion is never silently weakened.
+- WCAG contrast-pair CI guard (CONTRAST). A new `contrast` test suite computes
+  WCAG ratios `(Lmax + 0.05)/(Lmin + 0.05)` via the exported `parseHex` +
+  `luminance` and asserts AA (≥ 4.5:1) for each theme on the key pairs:
+  `--text` on `--bg` and on `--surface`, `--text-on-accent` on `--accent` (the
+  B2-unified ink, provably readable on amber), and `--text-muted` on `--surface`.
+  All current values clear full AA with margin (lowest measured = daylight
+  `--text-muted` on `--surface` at 6.28:1), so no large-text 3:1 relaxation is
+  used. A deliberately low-contrast pair would trip the guard. Test-only; no
+  generator/CSS/dist change.
+
 ### Fixed
 
 - Unify the two accent-contrast ("ink on accent") systems to a single source of
