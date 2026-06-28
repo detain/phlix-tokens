@@ -10,4 +10,4 @@
  */
 export { tokens, resolveTheme, type Tokens, } from './tokens.generated';
 export { type ThemeName, type Density, THEMES, DENSITIES, DEFAULT_THEME, DEFAULT_DENSITY, DATA_THEME, DATA_DENSITY, DATA_REDUCED_MOTION, type TokenAttributeOptions, type TokenTarget, applyTokenAttributes, } from './themes';
-export { type RGB, parseHex, toHex, lighten, darken, rgba, luminance, ACCENT_KEYS, deriveAccentVars, } from './accent';
+export { type RGB, parseHex, toHex, lighten, darken, rgba, luminance, ACCENT_KEYS, ACCENT_INK_DARK, ACCENT_INK_LIGHT, deriveAccentVars, } from './accent';

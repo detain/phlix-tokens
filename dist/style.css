@@ -28,7 +28,8 @@
   --amber-800: #924d10;
   --amber-900: #783f11;
   --amber-950: #441f06;
-  --accent-contrast: #2a1804;   /* ink on amber fills */
+  /* ink on amber fills — single source of truth = ACCENT_INK_DARK in src/accent.ts; keep in sync */
+  --accent-contrast: #2a1804;
 }
 
 /* =============================  THEME: Nocturne (dark, default)  =========== */

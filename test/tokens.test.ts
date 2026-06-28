@@ -16,6 +16,8 @@ import {
   applyTokenAttributes,
   type TokenTarget,
   ACCENT_KEYS,
+  ACCENT_INK_DARK,
+  ACCENT_INK_LIGHT,
   deriveAccentVars,
   parseHex,
   toHex,
@@ -210,13 +212,24 @@ describe('deriveAccentVars / accent helpers', () => {
     expect(vars['--accent']).toBe('#f5a524');
     expect(vars['--accent-soft']).toBe('rgba(245, 165, 36, 0.14)');
     expect(vars['--accent-ring']).toBe('rgba(245, 165, 36, 0.55)');
-    // light accent → dark ink contrast
-    expect(vars['--accent-contrast']).toBe('#1a1205');
+    // light accent → dark ink contrast (canonical ACCENT_INK_DARK)
+    expect(vars['--accent-contrast']).toBe('#2a1804');
+    expect(vars['--accent-contrast']).toBe(ACCENT_INK_DARK);
   });
 
   it('picks light ink for a dark accent', () => {
     const vars = deriveAccentVars('#101010') as Record<string, string>;
     expect(vars['--accent-contrast']).toBe('#fff8ec');
+    expect(vars['--accent-contrast']).toBe(ACCENT_INK_LIGHT);
+  });
+
+  // B2 single-source-of-truth regression guard: the runtime accent-picker path
+  // (deriveAccentVars) and the static CSS `--accent-contrast` must agree for the
+  // default amber. If colors.css and accent.ts ever drift again, this fails.
+  it('agrees with the CSS --accent-contrast for the default amber (single source of truth)', () => {
+    const vars = deriveAccentVars('#f5a524') as Record<string, string>;
+    expect(vars['--accent-contrast']).toBe(resolveTheme('nocturne')['--accent-contrast']);
+    expect(vars['--accent-contrast']).toBe(ACCENT_INK_DARK);
   });
 
   it('returns null for unparseable input', () => {
