@@ -6,7 +6,7 @@ export interface Tokens {
     midnight: Record<string, string>;
     spacing: Record<string, string>;
     radius: Record<string, string>;
-    shadow: Record<string, string>;
+    shadow: Record<ThemeName, Record<string, string>>;
     motion: Record<string, string>;
     density: Record<'comfortable' | 'compact', Record<string, string>>;
     typography: Record<string, string>;
