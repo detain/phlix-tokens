@@ -25,8 +25,35 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   used. A deliberately low-contrast pair would trip the guard. Test-only; no
   generator/CSS/dist change.
 
+### Changed
+
+- **Minor breaking:** `tokens.shadow` is now theme-aware (CQ3). It changes shape
+  from a single `Record<string, string>` (always the Nocturne ladder) to a
+  per-theme `Record<ThemeName, Record<string, string>>`, mirroring
+  `tokens.density`. `shadow.css` declares distinct ladders per theme (daylight is
+  brown-tinted + softer, midnight is heavier), so a non-CSS consumer (React
+  Native / Roku) now gets the correct ladder for the active theme instead of
+  always the dark Nocturne ladder. **Consumers reading `tokens.shadow['--shadow-2']`
+  must move to `tokens.shadow.nocturne['--shadow-2']`** (or the active theme).
+  Cross-repo grep at authoring time (2026-06-28) found **no** `tokens.shadow`
+  usage in phlix-ui / phlix-mobile-client / phlix-roku-client (nor the
+  windows/tizen/console clients), so this break is latent in practice; any
+  consumer updates are tracked as separate PRs. The `resolveTheme(name)` path is
+  unaffected (it already returns per-theme resolved `--shadow-*` values).
+
 ### Fixed
 
+- Harden the generator's `var()` fallback resolution against deeply-nested
+  parentheses (B4). `resolveValue`'s `varRe` captures at most **one** level of
+  nested parens inside a `var()` fallback; a two-level nest (e.g.
+  `var(--x, clamp(1rem, calc(2px + 1vw), 3rem))`) could be mis-captured. The
+  generator now runs `assertVarFallbackDepth` on every value first and **throws a
+  clear error** if a fallback nests deeper than the resolver supports, so an
+  over-nested value can never silently mis-resolve. No current token hits this, so
+  generation stays a byte-for-byte no-op on the real CSS (the drift gate is
+  unchanged) — the guard is purely defensive. `resolveValue` /
+  `assertVarFallbackDepth` are now importable from the generator (it only runs
+  `main()` as the CLI entry) for unit coverage.
 - Unify the two accent-contrast ("ink on accent") systems to a single source of
   truth (B2). The runtime accent picker (`deriveAccentVars`) and the static CSS
   `--accent-contrast` in `colors.css` had drifted: JS returned `#1a1205` for a

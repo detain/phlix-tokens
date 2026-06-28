@@ -185,6 +185,25 @@ describe('tokens object', () => {
     expect(tokens.daylight['--bg']).toBe('#f7f1e6');
     expect(tokens.midnight['--bg']).toBe('#000000');
   });
+
+  // CQ3: tokens.shadow is now a PER-THEME map (Record<ThemeName, …>) mirroring
+  // tokens.density, instead of only the Nocturne ladder. A non-CSS consumer
+  // (React Native / Roku) gets the right shadow ladder for the active theme.
+  it('exposes a per-theme shadow map (CQ3 — theme-aware)', () => {
+    // shape: one entry per theme, each a string→string map
+    expect(Object.keys(tokens.shadow).sort()).toEqual(
+      ['daylight', 'midnight', 'nocturne'].sort(),
+    );
+    // nocturne ladder is the prior default and unchanged
+    expect(tokens.shadow.nocturne['--shadow-2']).toBe('0 4px 14px rgba(0, 0, 0, 0.48)');
+    // daylight is a distinct (brown-tinted, softer) ladder → proves theme-awareness
+    expect(tokens.shadow.daylight['--shadow-2']).not.toBe(tokens.shadow.nocturne['--shadow-2']);
+    expect(tokens.shadow.daylight['--shadow-2']).toBe('0 4px 14px rgba(74, 55, 20, 0.12)');
+    expect(tokens.shadow.midnight['--shadow-2']).toBe('0 4px 14px rgba(0, 0, 0, 0.70)');
+    // glow + legacy aliases are surfaced per theme too
+    expect(tokens.shadow.nocturne['--glow-amber']).toContain('rgba(245, 165, 36');
+    expect(tokens.shadow.nocturne['--shadow-md']).toBe(tokens.shadow.nocturne['--shadow-2']);
+  });
 });
 
 describe('generated json round-trips', () => {
@@ -420,4 +439,48 @@ describe('contrast', () => {
       ).toBeGreaterThanOrEqual(AA);
     });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Step B4 — resolveValue nested-paren handling.
+// The generator's `varRe` captures at most ONE level of nested parens inside a
+// var() fallback. A two-level nest (e.g. clamp() containing calc()) would be
+// mis-captured. resolveValue therefore fails closed: `assertVarFallbackDepth`
+// throws on an over-nested fallback so it can never SILENTLY mis-resolve. These
+// unit tests import the helpers directly (the generator only runs main() when
+// executed as the CLI entry, so importing it is side-effect-free).
+// ---------------------------------------------------------------------------
+import { resolveValue, assertVarFallbackDepth } from '../scripts/generate-tokens.mjs';
+
+describe('resolveValue nested-paren handling (B4)', () => {
+  it('resolves a one-level nested fallback (supported by varRe)', () => {
+    // --x is undefined in scope → fall through to the clamp() fallback, which
+    // contains exactly one level of nested parens and must resolve verbatim.
+    const out = resolveValue('var(--x, clamp(1rem, 2vw, 3rem))', {});
+    expect(out).toBe('clamp(1rem, 2vw, 3rem)');
+  });
+
+  it('resolves a one-level fallback against the scope when the ref exists', () => {
+    const out = resolveValue('var(--a, 0)', { '--a': 'var(--b, 1)', '--b': '#fff' });
+    expect(out).toBe('#fff');
+  });
+
+  it('throws a clear error on a two-level nested var() fallback (no silent mis-resolve)', () => {
+    // clamp() whose middle arg is calc() = two levels of nesting in the fallback.
+    const deep = 'var(--x, clamp(1rem, calc(2px + 1vw), 3rem))';
+    expect(() => resolveValue(deep, {})).toThrowError(
+      /nests parentheses deeper than the single-level resolver supports/,
+    );
+    // the guard itself throws too (exercised directly)
+    expect(() => assertVarFallbackDepth(deep)).toThrow(/silently mis-resolve/);
+  });
+
+  it('does not throw on plain values or non-fallback var()', () => {
+    expect(() => assertVarFallbackDepth('#0b0a08')).not.toThrow();
+    expect(() => assertVarFallbackDepth('var(--accent)')).not.toThrow();
+    expect(() => assertVarFallbackDepth('clamp(1rem, calc(2px + 1vw), 3rem)')).not.toThrow();
+    // a non-var() function with deep nesting is fine — the guard only inspects
+    // the part of a var() AFTER its fallback comma.
+    expect(() => assertVarFallbackDepth('var(--x, rgba(0,0,0,0.5))')).not.toThrow();
+  });
 });

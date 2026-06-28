@@ -19,7 +19,7 @@
  */
 
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -76,12 +76,67 @@ function classify(selector) {
 }
 
 /**
+ * Guard against a `var()` whose fallback nests parentheses deeper than the
+ * single-level `varRe` below can capture. `varRe`'s fallback pattern
+ * (`[^()]*(?:\([^()]*\)[^()]*)*`) matches at most ONE level of nested parens
+ * inside the fallback; a two-level nest such as
+ * `var(--x, clamp(1rem, calc(2px + 1vw), 3rem))` would be mis-captured and
+ * could silently resolve to the wrong substring. No current token hits this
+ * (B4 is a latent defect), so rather than silently mis-resolve we fail closed:
+ * scan each `var(` occurrence with a balanced-paren walker and THROW if its
+ * fallback contains a parenthesis nested more than one level deep. This keeps
+ * generation deterministic and a no-op on the real CSS while making any future
+ * over-nested fallback a loud, clear generator error instead of a silent bug.
+ *
+ * @param {string} value the raw declaration value being resolved
+ */
+function assertVarFallbackDepth(value) {
+  // Walk to each `var(` token, then scan its parenthesised body, tracking the
+  // nesting depth of parens that appear AFTER the fallback comma (the part the
+  // single-level regex is responsible for). Depth 1 = the fallback's own
+  // function call (e.g. `clamp(...)`) — supported. Depth ≥ 2 = a nested call
+  // inside that (e.g. `calc(...)` inside `clamp(...)`) — unsupported by varRe.
+  for (let i = value.indexOf('var('); i !== -1; i = value.indexOf('var(', i + 1)) {
+    let depth = 0; // paren depth relative to this var('s opening paren
+    let sawComma = false; // have we passed the fallback comma at depth 1 yet?
+    let fallbackDepth = 0; // paren depth measured from the start of the fallback
+    for (let j = i + 3; j < value.length; j++) {
+      const ch = value[j];
+      if (ch === '(') {
+        depth++;
+        if (sawComma) {
+          fallbackDepth++;
+          if (fallbackDepth > 1) {
+            throw new Error(
+              `generate-tokens: var() fallback nests parentheses deeper than the ` +
+                `single-level resolver supports (would silently mis-resolve). ` +
+                `Value: ${value.trim()}`,
+            );
+          }
+        }
+      } else if (ch === ')') {
+        if (sawComma && fallbackDepth > 0) fallbackDepth--;
+        depth--;
+        if (depth === 0) break; // closed this var()
+      } else if (ch === ',' && depth === 1) {
+        sawComma = true; // first comma at the var()'s own level = fallback start
+      }
+    }
+  }
+}
+
+/**
  * Resolve `var(--ref[, fallback])` chains within a single scope map. Iterative
  * with a fixpoint; unresolved refs fall through to their fallback or are left
  * as a literal var() string (e.g. a ref to a property that lives in another
  * scope). Deterministic.
+ *
+ * `varRe` captures at most one level of nested parens inside a fallback; a
+ * deeper nest is rejected up-front by `assertVarFallbackDepth` so it can never
+ * silently mis-resolve (B4).
  */
 function resolveValue(value, scope, seen = new Set()) {
+  assertVarFallbackDepth(value);
   const varRe = /var\(\s*(--[\w-]+)\s*(?:,([^()]*(?:\([^()]*\)[^()]*)*))?\)/;
   let v = value;
   let guard = 0;
@@ -206,11 +261,20 @@ function main() {
     else if (cat === 'motion') motion[key] = baseResolved[key];
     else if (cat === 'typography') typography[key] = baseResolved[key];
   }
-  // Shadows live in theme blocks (not base) — surface them from Nocturne, the
-  // :root default theme, so a non-CSS consumer gets the default ladder.
+  // Shadows live in theme blocks (not base): shadow.css declares distinct
+  // ladders per theme (daylight is brown-tinted + softer, midnight is heavier).
+  // Emit `tokens.shadow` as a PER-THEME map (mirroring `tokens.density`'s shape)
+  // so a non-CSS consumer (React Native / Roku) gets the correct ladder for the
+  // active theme instead of always the Nocturne dark ladder (CQ3). Each theme's
+  // own resolved `--shadow-*` / `--glow-*` keys are surfaced.
   const shadow = {};
-  for (const key of Object.keys(themeResolved.nocturne)) {
-    if (key.startsWith('--shadow-') || key.startsWith('--glow-')) shadow[key] = themeResolved.nocturne[key];
+  for (const t of THEME_NAMES) {
+    shadow[t] = {};
+    for (const key of Object.keys(themeResolved[t])) {
+      if (key.startsWith('--shadow-') || key.startsWith('--glow-')) {
+        shadow[t][key] = themeResolved[t][key];
+      }
+    }
   }
 
   const tokens = {
@@ -247,7 +311,7 @@ function main() {
     `  midnight: Record<string, string>;\n` +
     `  spacing: Record<string, string>;\n` +
     `  radius: Record<string, string>;\n` +
-    `  shadow: Record<string, string>;\n` +
+    `  shadow: Record<ThemeName, Record<string, string>>;\n` +
     `  motion: Record<string, string>;\n` +
     `  density: Record<'comfortable' | 'compact', Record<string, string>>;\n` +
     `  typography: Record<string, string>;\n` +
@@ -274,4 +338,13 @@ function main() {
   );
 }
 
-main();
+// Run generation only when executed directly (`node scripts/generate-tokens.mjs`
+// / `npm run generate`). When imported (e.g. by the B4 unit test) the helpers
+// below are exported without writing any files — keeps `npm run generate`
+// behaviour byte-identical while making `resolveValue` / the nested-paren guard
+// testable.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}
+
+export { resolveValue, assertVarFallbackDepth };

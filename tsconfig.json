@@ -16,5 +16,5 @@
         "noFallthroughCasesInSwitch": true,
         "types": ["node"]
     },
-    "include": ["src/**/*.ts", "src/**/*.d.ts", "test/**/*.ts"]
+    "include": ["src/**/*.ts", "src/**/*.d.ts", "test/**/*.ts", "scripts/**/*.d.mts"]
 }
