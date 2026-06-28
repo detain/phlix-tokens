@@ -131,6 +131,44 @@ describe('tokens object', () => {
   it('preserves clamp() typography strings verbatim', () => {
     expect(tokens.typography['--text-xl']).toBe('clamp(1.4rem, 1.1rem + 1.2vw, 1.75rem)');
   });
+
+  // B1 regression guard: color tokens declared in colors.css (`--text-muted`,
+  // `--text-subtle`, `--text-faint`, `--text-on-accent`) must NOT leak into
+  // tokens.typography just because they share the `--text-` prefix.
+  it('tokens.typography contains no hex / color values', () => {
+    const hexRe = /#[0-9a-fA-F]{3,8}\b/;
+    for (const [key, value] of Object.entries(tokens.typography)) {
+      expect(value, `${key} should not be a hex color`).not.toMatch(hexRe);
+      expect(value.startsWith('rgb'), `${key} should not be rgb/rgba`).toBe(false);
+      expect(value.startsWith('hsl'), `${key} should not be hsl/hsla`).toBe(false);
+    }
+    // the specific leaked keys are gone
+    expect(tokens.typography['--text-muted']).toBeUndefined();
+    expect(tokens.typography['--text-subtle']).toBeUndefined();
+    expect(tokens.typography['--text-faint']).toBeUndefined();
+    expect(tokens.typography['--text-on-accent']).toBeUndefined();
+  });
+
+  it('tokens.typography still contains the real type scale', () => {
+    expect(tokens.typography['--text-xl']).toBe('clamp(1.4rem, 1.1rem + 1.2vw, 1.75rem)');
+    expect(tokens.typography['--font-sans']).toContain('Hanken Grotesk');
+    expect(tokens.typography['--font-bold']).toBe('700');
+    expect(tokens.typography['--tracking-caps']).toBe('0.12em');
+    expect(tokens.typography['--leading-normal']).toBe('1.55');
+  });
+
+  // The color names were only RECATEGORIZED, not dropped: they remain reachable
+  // through the base / theme maps via resolveTheme (the CSS keys are unchanged,
+  // so phlix-ui and other consumers still resolve them).
+  it('keeps the recategorized color names reachable via resolveTheme', () => {
+    expect(resolveTheme('nocturne')['--text-muted']).toBe('#b8ab98');
+    expect(resolveTheme('nocturne')['--text-subtle']).toBe('#918370');
+    expect(resolveTheme('nocturne')['--text-faint']).toBe('#544a3f');
+    expect(resolveTheme('nocturne')['--text-on-accent']).toBe('#2a1804');
+    // also present on tokens.base (theme-invariant declarations resolved against base)
+    expect(tokens.base['--text-muted']).toBe('#b8ab98');
+  });
+
   it('has spacing/radius/motion families', () => {
     expect(tokens.spacing['--space-4']).toBe('1rem');
     expect(tokens.radius['--radius-full']).toBe('9999px');

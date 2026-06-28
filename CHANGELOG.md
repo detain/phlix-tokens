@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Stop color tokens leaking into `tokens.typography` (B1). The generator now
+  categorizes base custom properties by their **source file** instead of by
+  key-prefix guessing, so the colors declared in `colors.css` — `--text-muted`,
+  `--text-subtle`, `--text-faint`, `--text-on-accent` — no longer appear as hex
+  values inside the `tokens.typography` convenience object. The CSS keys are
+  **unchanged** (no rename), and the color names remain reachable via
+  `tokens.base` / the per-theme maps / `resolveTheme()`, so consumers
+  (phlix-ui and downstream) are unaffected. This also closes CQ2: adding a new
+  token family is now a single `FILE_FAMILY` lookup entry, and an unrecognized
+  source file fails closed (ignored) instead of being mis-categorized.
+
 ## [0.1.1] - 2026-06-26
 
 ### Fixed
