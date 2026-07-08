@@ -156,6 +156,7 @@
   --accent-active: var(--amber-600);
   --accent-soft:   rgba(245, 165, 36, 0.16);
   --accent-ring:   rgba(245, 165, 36, 0.60);
+ * @copyright 2026 Joe Huss <detain@interserver.net>
   --accent-text:   var(--amber-500);   /* amber AS foreground text/icon — AA (≥4.5:1) on bg/surface */
 
   --bg:            #000000;

@@ -5,6 +5,7 @@
   --radius-md: 10px;    /* buttons, inputs, chips */
   --radius-lg: 14px;    /* posters, cards, thumbs */
   --radius-xl: 20px;    /* filter bar, player, panels */
+ * @copyright 2026 Joe Huss <detain@interserver.net>
   --radius-2xl: 28px;   /* large sheets, hero */
   --radius-full: 9999px;
 }

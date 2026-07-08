@@ -6,6 +6,7 @@
  * reflects a theme onto an element (`<html>` in practice): `data-theme`,
  * `data-density`, `data-reduced-motion`. The token CSS is scoped to these exact
  * selectors, so they must stay in lockstep with `src/css/*.css`.
+ * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
 import { deriveAccentVars, ACCENT_KEYS } from './accent';

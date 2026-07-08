@@ -58,6 +58,7 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
 }
+ * @copyright 2026 Joe Huss <detain@interserver.net>
 /* Uppercase eyebrow/label. */
 .eyebrow {
   font-size: var(--text-2xs);

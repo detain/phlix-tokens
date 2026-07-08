@@ -1,3 +1,7 @@
+/**
+ * @copyright 2026 Joe Huss <detain@interserver.net>
+ */
+
 import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
