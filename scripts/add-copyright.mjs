@@ -43,19 +43,19 @@ function findDocblockEnd(lines, start) {
 }
 
 // Inject copyright into an existing TS/JS docblock /** ... */
-// Returns null if no docblock OR copyright already present.
+// Returns null if no top-level docblock OR copyright already present.
+// Only considers /** at the very start of the file (after optional shebang)
+// to avoid misinterpreting TypeScript type expressions like `TokenTarget & { */ }`.
 function injectTsDocblock(content) {
   const lines = content.split('\n');
 
   let offset = 0;
   if (lines.length > 0 && isShebang(lines[0])) offset = 1;
 
-  let docStart = -1;
-  for (let i = offset; i < lines.length; i++) {
-    if (lines[i].includes('/**')) { docStart = i; break; }
-  }
-  if (docStart === -1) return null;
+  // Only consider /** that appears at the very start of the file (after shebang)
+  if (lines.length <= offset || !lines[offset].includes('/**')) return null;
 
+  const docStart = offset;
   const docEnd = findDocblockEnd(lines, docStart);
   if (docEnd === -1) return null;
 
