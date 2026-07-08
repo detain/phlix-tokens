@@ -14,5 +14,6 @@
   --dur-fast:   120ms;   /* hover bg, small state */
   --dur-base:   200ms;
   --dur-slow:   320ms;   /* card lift, overlay reveal */
+ * @copyright 2026 Joe Huss <detain@interserver.net>
   --dur-slower: 480ms;   /* poster zoom, image fade-in */
 }

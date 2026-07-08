@@ -5,6 +5,7 @@
  *
  * `deriveAccentVars(hex)` derives the full accent role set from a single accent
  * hex (used when a user overrides the default amber via the accent picker).
+ * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
 export interface RGB {
