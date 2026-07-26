@@ -6,6 +6,7 @@
 
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join, extname, basename } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const COPYRIGHT = ' * @copyright 2026 Joe Huss <detain@interserver.net>';
 
@@ -99,28 +100,59 @@ function processTsFile(filepath) {
   return injectTsDocblock(content) ?? prependTsDocblock(content);
 }
 
-// Inject copyright into an existing CSS block comment.
-// Finds the last line containing the block closer (asterisk-slash)
-// inside the opening block-comment and inserts the copyright line
-// just before it (so it stays inside the block).
+// Inject copyright into the file's OWN opening CSS block comment.
+//
+// Finds the terminator of the OPENING block comment — the FIRST line
+// (scanning from the top of the file, since the opening comment always
+// starts on line 0) that contains the block closer `*/` — and inserts the
+// copyright line just before it, so it stays inside that block.
+//
+// Deliberately NOT the last `*/` in the whole file: CSS token files are
+// full of later `/* ... */` annotation comments (including single-line
+// trailing comments on individual declarations, e.g.
+// `--radius-xl: 20px; /* filter bar, player, panels */`), so scanning for
+// the last occurrence lands the copyright line on whatever later comment
+// happens to close last — inside a `:root{}` block, between two
+// declarations, as a naked, delimiter-less line. That corrupted 5 CSS
+// files in commit 9ec4298 (fixed in #9); see the worklog for detail.
 function injectCssComment(content) {
   const lines = content.split('\n');
   if (lines.length === 0 || !lines[0].trim().startsWith('/*')) return null;
 
-  // Find last line that contains the block closer */
-  let lastCloseIdx = -1;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].includes('*/')) lastCloseIdx = i;
+  // Find the first line (starting at the opening line itself, since a
+  // single-line opening comment like `/* */` closes on line 0) that
+  // contains the block closer */.
+  let closeIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('*/')) {
+      closeIdx = i;
+      break;
+    }
   }
-  if (lastCloseIdx === -1) return null;
+  if (closeIdx === -1) return null;
 
-  // Check if copyright already present
-  const block = lines.slice(0, lastCloseIdx + 1).join('\n');
+  // Check if copyright already present within the opening block
+  const block = lines.slice(0, closeIdx + 1).join('\n');
   if (block.includes('detain@interserver.net')) return null;
 
-  // Insert copyright line just before the closing line
   const out = [...lines];
-  out.splice(lastCloseIdx, 0, COPYRIGHT);
+
+  if (closeIdx === 0) {
+    // Single-line opening comment (e.g. `/* */`) — there's no separate
+    // line to insert before, so expand it into a multi-line block:
+    // whatever preceded `*/` becomes its own line, then the copyright
+    // line, then the closer.
+    const line = lines[0];
+    const closeAt = line.indexOf('*/');
+    const before = line.slice(0, closeAt).trimEnd();
+    const after = line.slice(closeAt); // '*/' plus anything trailing
+    out.splice(0, 1, before, COPYRIGHT, ' ' + after);
+  } else {
+    // Multi-line opening comment — insert copyright just before the
+    // closing line so it stays inside the block.
+    out.splice(closeIdx, 0, COPYRIGHT);
+  }
+
   return out.join('\n');
 }
 
@@ -137,31 +169,42 @@ function processCssFile(filepath) {
 }
 
 // ---- Main ----
-const tsFiles = [...walk('src', TS_EXTS), ...walk('test', TS_EXTS)];
-const cssFiles = walk('src', new Set([CSS_EXT]));
+// Guarded so importing this module (e.g. from a test that exercises the
+// pure functions below) never walks the repo tree and writes files —
+// only running it directly as a script (`node scripts/add-copyright.mjs`)
+// does.
+const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
 
-let changed = 0;
-const touched = [];
+if (isMain) {
+  const tsFiles = [...walk('src', TS_EXTS), ...walk('test', TS_EXTS)];
+  const cssFiles = walk('src', new Set([CSS_EXT]));
 
-for (const file of [...tsFiles, ...cssFiles]) {
-  const ext = extname(file);
-  let newContent = null;
+  let changed = 0;
+  const touched = [];
 
-  if (TS_EXTS.has(ext)) newContent = processTsFile(file);
-  else if (ext === CSS_EXT) newContent = processCssFile(file);
+  for (const file of [...tsFiles, ...cssFiles]) {
+    const ext = extname(file);
+    let newContent = null;
 
-  if (newContent !== null) {
-    writeFileSync(file, newContent, 'utf8');
-    changed++;
-    touched.push(file);
-    console.log('ADDED: ' + file);
-  } else {
-    console.log('SKIP:  ' + file);
+    if (TS_EXTS.has(ext)) newContent = processTsFile(file);
+    else if (ext === CSS_EXT) newContent = processCssFile(file);
+
+    if (newContent !== null) {
+      writeFileSync(file, newContent, 'utf8');
+      changed++;
+      touched.push(file);
+      console.log('ADDED: ' + file);
+    } else {
+      console.log('SKIP:  ' + file);
+    }
+  }
+
+  console.log(`\nDone: ${changed} file(s) updated.`);
+  if (touched.length > 0) {
+    console.log('\nTouched:');
+    for (const f of touched) console.log('  ' + f);
   }
 }
 
-console.log(`\nDone: ${changed} file(s) updated.`);
-if (touched.length > 0) {
-  console.log('\nTouched:');
-  for (const f of touched) console.log('  ' + f);
-}
+// ---- Exports (for the regression test; the CLI usage above is unaffected) ----
+export { injectCssComment, prependCssComment, injectTsDocblock, prependTsDocblock, COPYRIGHT };
