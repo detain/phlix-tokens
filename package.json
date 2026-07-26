@@ -23,6 +23,7 @@
   ],
   "scripts": {
     "generate": "node scripts/generate-tokens.mjs",
+    "copyright": "node scripts/add-copyright.mjs",
     "build": "npm run generate && tsc --noEmit -p tsconfig.json && vite build && tsc --declaration --emitDeclarationOnly -p tsconfig.build.json && node scripts/build-css.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest",
