@@ -10,6 +10,7 @@
    separate, cacheable stylesheet — see that file for why). This file holds only
    the font-family tokens, scale, tracking/leading and utilities that reference
    those faces, so the bundled style.css stays free of inlined font bytes.
+ * @copyright 2026 Joe Huss <detain@interserver.net>
    ============================================================================ */
 
 /* ------------------------------- Tokens --------------------------------- */
@@ -58,7 +59,6 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
 }
- * @copyright 2026 Joe Huss <detain@interserver.net>
 /* Uppercase eyebrow/label. */
 .eyebrow {
   font-size: var(--text-2xs);
