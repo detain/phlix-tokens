@@ -119,6 +119,10 @@ if the committed artifact is out of date.
 | `npm run test`     | vitest (watch)                                            |
 | `npm run test:run` | vitest run (once)                                         |
 | `npm run lint`     | eslint                                                    |
+| `npm run copyright`| stamp the `@copyright` header on `src/**`/`test/**` (idempotent) |
+
+`npm run copyright` (`node scripts/add-copyright.mjs`) stamps the `@copyright` header on `src/**` and
+`test/**` sources.
 
 ## License
 
