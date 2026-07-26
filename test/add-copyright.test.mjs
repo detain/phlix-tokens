@@ -28,13 +28,27 @@
 //                           first one. Most of these PASS on origin/master
 //                           (master never attempted the behaviour being
 //                           guarded, so there's nothing there to get wrong) —
-//                           EXCEPT "preserves CRLF line endings on the lines
-//                           it injects", which FAILS on origin/master too:
+//                           EXCEPT the two CRLF-preservation cases ("preserves
+//                           CRLF line endings on the lines it injects" and
+//                           "mixed-EOL input: the injected line adopts CRLF
+//                           because one is present ANYWHERE, not because it
+//                           is dominant"), which FAIL on origin/master too:
 //                           master has no EOL-preservation logic at all, so
-//                           it also injects a bare-LF line into an otherwise
-//                           CRLF file. That one case discriminates against
-//                           BOTH prior implementations, not only the first
-//                           cut — round-2 review, finding 6.
+//                           it also injects a bare-LF line in both shapes.
+//                           Those two cases discriminate against BOTH prior
+//                           implementations, not only the first cut —
+//                           round-2 review finding 6, and round-3 review
+//                           finding 1.
+//   REGRESSION (pre-existing) — fails against BOTH origin/master and the
+//                           first-cut fix (7cb90da), but — unlike the
+//                           category above — the defect it guards was not
+//                           introduced by either `*/`-scan fix attempt. It
+//                           already existed in prependCssComment() on master,
+//                           untouched by 9ec4298 or 7cb90da, and only got
+//                           repaired because this round touched the same
+//                           file for an unrelated reason (round-2 review,
+//                           finding 8). Zero production exposure today (no
+//                           BOM'd CSS ships in this repo).
 //   CHARACTERIZATION      — passes both before and after; documents intended
 //                           behaviour, does not discriminate. Kept on purpose,
 //                           but do not mistake it for a guard.
@@ -46,13 +60,14 @@
 // typecheck` never sees it. (It needs no ESLint carve-out either — it imports
 // everything it uses and declares no Node globals.)
 //
-// This is a pure-function test: it imports injectCssComment/prependCssComment
-// from scripts/lib/copyright.mjs, which reads no files, writes no files and
-// walks no directories, so importing it can never touch the tree. The walking
-// CLI lives in scripts/add-copyright.mjs and is not imported here.
+// This is a pure-function test: it imports injectCssComment/prependCssComment/
+// prependTsDocblock from scripts/lib/copyright.mjs, which reads no files,
+// writes no files and walks no directories, so importing it can never touch
+// the tree. The walking CLI lives in scripts/add-copyright.mjs and is not
+// imported here.
 
 import { describe, it, expect } from 'vitest';
-import { injectCssComment, prependCssComment, COPYRIGHT, MARKER } from '../scripts/lib/copyright.mjs';
+import { injectCssComment, prependCssComment, prependTsDocblock, COPYRIGHT, MARKER } from '../scripts/lib/copyright.mjs';
 
 // Mirrors scripts/add-copyright.mjs::processCssFile — the whole-content
 // pre-check plus the inject-or-prepend dispatch. MARKER is imported from the
@@ -332,16 +347,14 @@ describe('injectCssComment (CSS copyright injection)', () => {
     expect(occurrences).toBe(1);
   });
 
-  // CHARACTERIZATION — pins the "any CRLF anywhere in the whole input" rule
-  // crFor() implements (see its comment, corrected for round-2 review
+  // REGRESSION (this fix) — pins the "any CRLF anywhere in the whole input"
+  // rule crFor() implements (see its comment, corrected for round-2 review
   // finding 2, which is NOT "detect and use the dominant terminator"). This
-  // exact mixed-EOL shape (3 bare LF, 1 CRLF) was previously untested. It
-  // also happens to discriminate against origin/master and the first-cut fix
-  // (7cb90da) — neither ever attempted EOL preservation at all, so both
-  // would inject a bare-LF line here instead — but it is listed as
-  // CHARACTERIZATION rather than a REGRESSION-(this-fix) guard because its
-  // purpose is coverage of the documented "any CRLF, not dominant
-  // terminator" behaviour, not discrimination for its own sake.
+  // exact mixed-EOL shape (3 bare LF, 1 CRLF) was previously untested.
+  // Discriminates against BOTH origin/master and the first-cut fix
+  // (7cb90da): neither ever attempted EOL preservation at all, so both
+  // inject a bare-LF line here instead of adopting CRLF (measured: `expected
+  // 1 to be 2` against each) — round-3 review, finding 1.
   it('mixed-EOL input: the injected line adopts CRLF because one is present ANYWHERE, not because it is dominant', () => {
     const input = '/**\n * hdr\r\n */\n:root{ --x: 1; }\n';
 
@@ -360,12 +373,12 @@ describe('injectCssComment (CSS copyright injection)', () => {
     expect(result).toContain(':root{ --x: 1; }');
   });
 
-  // REGRESSION (pre-existing, fixed while touching this file for round-2
-  // review finding 8) — before the fix, prependCssComment() emitted its
-  // header IN FRONT OF a leading UTF-8 BOM, leaving the BOM sitting mid-file
-  // right before `:root`, which a CSS parser then reads as part of the
-  // selector, silently dropping the rule. Byte-identical to master, so
-  // pre-existing with zero exposure today (no BOM'd CSS ships in this repo).
+  // REGRESSION (pre-existing) — before the fix (round-2 review, finding 8),
+  // prependCssComment() emitted its header IN FRONT OF a leading UTF-8 BOM,
+  // leaving the BOM sitting mid-file right before `:root`, which a CSS
+  // parser then reads as part of the selector, silently dropping the rule.
+  // Byte-identical to master, so pre-existing with zero exposure today (no
+  // BOM'd CSS ships in this repo).
   it('keeps a leading BOM at the very start of the file, not before the injected header', () => {
     const BOM = '﻿';
     const input = BOM + [':root { --x: 1; }', ''].join('\n');
@@ -378,19 +391,77 @@ describe('injectCssComment (CSS copyright injection)', () => {
     expect(result.charCodeAt(0)).toBe(0xfeff);
     expect(result.indexOf(BOM, 1)).toBe(-1);
 
-    // Minimal, dependency-free re-creation of what a CSS parser sees as the
-    // first selector: strip the leading BOM, then any leading whitespace and
-    // comments, then read the next token. (Cross-checked against
-    // postcss.parse() during review: with the fix, postcss reports the first
-    // rule's selector as exactly ":root"; without it, as "U+FEFF:root" — a
-    // different, unmatchable selector, i.e. the rule silently vanishes.)
-    let rest = result.slice(BOM.length);
-    let prev;
-    do {
-      prev = rest;
-      rest = rest.replace(/^\s+/, '').replace(/^\/\*[\s\S]*?\*\//, '');
-    } while (rest !== prev);
+    // Minimal, dependency-free APPROXIMATION of what a CSS parser sees as the
+    // first selector — not a re-creation of one (no notion of strings,
+    // escapes or at-rules): strip the leading BOM, then any leading
+    // whitespace and comments, then read the next token. The whitespace
+    // strip uses a class that explicitly EXCLUDES U+FEFF, unlike bare `\s`
+    // (which, per ECMA-262, treats U+FEFF as whitespace and would silently
+    // swallow a stray, non-leading BOM — exactly the axis this test exists
+    // to guard; round-3 review, finding 3). Cross-checked against
+    // postcss.parse() during review: on this fixed-up input postcss reports
+    // the first rule's selector as exactly ":root"; on the pre-fix damage
+    // shape (BOM glued to `:root`, not at byte 0) it reports "U+FEFF:root"
+    // instead — a different, unmatchable selector, i.e. the rule silently
+    // vanishes. A bare-`\s` version of this loop cannot tell the two shapes
+    // apart (it strips the stray BOM too and reports both as "clean"); the
+    // FEFF-excluding version below can, and does — see the second check
+    // right after.
+    const stripLeadingWhitespaceAndComments = (s) => {
+      let r = s;
+      let prev;
+      do {
+        prev = r;
+        r = r.replace(/^(?:(?!\uFEFF)\s)+/, '').replace(/^\/\*[\s\S]*?\*\//, '');
+      } while (r !== prev);
+      return r;
+    };
 
+    const rest = stripLeadingWhitespaceAndComments(result.slice(BOM.length));
     expect(rest.startsWith(':root')).toBe(true);
+
+    // Prove the emulation actually diverges on the guarded axis: fed the
+    // damage shape directly (a BOM glued to `:root`, not at byte 0 — what
+    // the pre-fix prependCssComment() used to produce), it must NOT report
+    // "clean". A bare-`\s` version silently strips the BOM here and reports
+    // startsWith(':root') === true even though postcss.parse() reports the
+    // selector as "U+FEFF:root" — a false negative on exactly the shape this
+    // file exists to catch.
+    const damageShape = '/* hdr */\n' + BOM + ':root { --x: 1; }\n';
+    const damageRest = stripLeadingWhitespaceAndComments(damageShape);
+    expect(damageRest.startsWith(BOM)).toBe(true);
+    expect(damageRest.startsWith(':root')).toBe(false);
+  });
+});
+
+describe('prependTsDocblock (TS/JS copyright injection — BOM handling)', () => {
+  // REGRESSION (pre-existing) — same category and same root cause as the CSS
+  // BOM case above (round-2 review, finding 8; here, round-3 review,
+  // finding 5): prependTsDocblock() used to emit its fresh docblock IN FRONT
+  // OF a leading UTF-8 BOM, leaving the BOM sitting mid-file, in front of the
+  // first real statement instead of at byte 0. Fails identically against
+  // BOTH origin/master and the first-cut fix (7cb90da) — neither ever had
+  // BOM-awareness in this function, so both relocate the BOM the same way
+  // (measured: charCodeAt(0) === 0x2f, BOM re-appearing at a non-zero
+  // index). Kept LOW: U+FEFF is ECMAScript WhiteSpace, so a relocated BOM
+  // here is benign to `tsc`/node — unlike the CSS case, where it joins the
+  // following selector and silently drops the rule — but it is the same bug
+  // in the same function family, fixed for consistency.
+  it('keeps a leading BOM at byte 0, with the docblock landing after it', () => {
+    const BOM = '﻿';
+    const input = BOM + 'export const x = 1;\n';
+
+    const result = prependTsDocblock(input);
+
+    // The BOM must be byte 0 of the OUTPUT, and appear nowhere else.
+    expect(result.charCodeAt(0)).toBe(0xfeff);
+    expect(result.indexOf(BOM, 1)).toBe(-1);
+    expect((result.match(new RegExp(BOM, 'g')) || []).length).toBe(1);
+
+    // The docblock (with the copyright line) follows the BOM, and the
+    // original statement survives untouched.
+    expect(result.slice(BOM.length).startsWith('/**')).toBe(true);
+    expect(result).toContain(COPYRIGHT);
+    expect(result).toContain('export const x = 1;');
   });
 });

@@ -16,13 +16,14 @@
  * all, so there is no guard left to be wrong.
  *
  * Header note (round-2 review, finding 5): this is the only file under
- * scripts/ carrying a @copyright line — its three siblings (add-copyright.mjs,
- * generate-tokens.mjs, build-css.mjs) have none, and `npm run copyright`'s
- * walk() only covers src/ and test/, so nothing enforces either state. That
- * asymmetry is deliberate, not an oversight: this file is kept IN SYNC BY HAND.
- * Do not extend walk() to scripts/ to "fix" this — that changes CLI behaviour
- * (it would start rewriting scripts/*.mjs) and is tracked separately from this
- * decision.
+ * scripts/ carrying a @copyright line — its four siblings (add-copyright.mjs,
+ * generate-tokens.mjs, generate-tokens.d.mts, build-css.mjs) have none, and
+ * `npm run copyright`'s walk() only covers src/ and test/, so nothing
+ * enforces either state. That asymmetry is deliberate, not an oversight: this
+ * file is kept IN SYNC BY HAND. Do not extend walk() to scripts/ to "fix"
+ * this — that changes CLI behaviour (it would start rewriting scripts/*.mjs).
+ * There is no separate ticket tracking this: it is a one-off decision made
+ * here, not a deferred piece of work.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
@@ -101,8 +102,22 @@ function injectTsDocblock(content) {
 }
 
 // Prepend a new TS/JS docblock at the top (after any shebang).
+//
+// Round-3 review, finding 5: the same BOM-relocation bug fixed in
+// prependCssComment() (round-2 review, finding 8) also existed here — if
+// `content` starts with a BOM, the header must still land AFTER it, not
+// before. U+FEFF is ECMAScript WhiteSpace, so a relocated BOM here is benign
+// to `tsc`/node (unlike the CSS case, where it joins the following selector
+// and silently drops the rule) — but leaving one path fixed and the other
+// not is an inconsistency in the same function family, so it is fixed here
+// too. `injectTsDocblock()` below does NOT have this defect: it only splices
+// a new line into the array and never touches line 0, so a leading BOM
+// already stays exactly where it was.
 function prependTsDocblock(content) {
-  const lines = content.split('\n');
+  const hasBom = content.startsWith(BOM);
+  const body = hasBom ? content.slice(BOM.length) : content;
+
+  const lines = body.split('\n');
   let offset = 0;
   if (lines.length > 0 && isShebang(lines[0])) offset = 1;
 
@@ -115,7 +130,7 @@ function prependTsDocblock(content) {
     '',
   ];
 
-  return [...lines.slice(0, offset), ...docblock, ...lines.slice(offset)].join('\n');
+  return (hasBom ? BOM : '') + [...lines.slice(0, offset), ...docblock, ...lines.slice(offset)].join('\n');
 }
 
 // Inject copyright into the file's OWN opening CSS block comment.
