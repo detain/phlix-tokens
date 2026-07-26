@@ -43,6 +43,30 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Repair the five CSS files broken by the copyright-header pass (`9ec4298`).
+  That commit inserted a **naked** `* @copyright …` line — with no `/* */`
+  delimiters — into the *middle* of `radius.css` (L8), `motion.css` (L17),
+  `colors.css` (L159), `density.css` (L28) and `typography.css` (L61), because
+  each file already had a top-of-file block comment and the injector wrote to a
+  wrong line offset. The copyright notice is now **relocated into each file's
+  existing header block** (notice preserved in every file; the CSS is valid
+  again). Consequences that this fixes:
+  - Four real, source-defined tokens were dropped by the generator, because an
+    invalid declaration line makes the parser discard the declaration that
+    **follows** it: `--dur-slower: 480ms`, `--radius-2xl: 28px`, the *midnight*
+    `--accent-text`, and the *compact* `--stack-gap: 0.625rem`. All four are
+    restored, so `src/tokens.generated.{ts,json}` regenerate byte-identically to
+    the committed artifact and the CI drift gate is green again (red since
+    2026-07-08).
+  - The `.eyebrow` utility rule in `typography.css` was silently **discarded by
+    browsers**: the stray line sat at brace depth 0, so the rule's selector
+    parsed as a dangling combinator and the whole block was thrown away.
+    Verified with `lightningcss`; the rule is now emitted again.
+  - `dist/` is rebuilt. The committed `dist/` predated `9ec4298`, so the shipped
+    CSS/`.d.ts` artifacts never carried the headers at all; they now match a
+    fresh build. `dist/tokens.json`, `dist/phlix-tokens.js` and
+    `dist/phlix-tokens.umd.cjs` are **unchanged** — no token value or public API
+    moved, the delta is comments only.
 - Harden the generator's `var()` fallback resolution against deeply-nested
   parentheses (B4). `resolveValue`'s `varRe` captures at most **one** level of
   nested parens inside a `var()` fallback; a two-level nest (e.g.

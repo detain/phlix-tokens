@@ -1,3 +1,8 @@
+/*
+ * @copyright 2026 Joe Huss <detain@interserver.net>
+ */
+
+
 /* ---- inlined: colors.css ---- */
 /* ============================================================================
    @phlix/ui — Color tokens (Nocturne design system, R0.1)
@@ -13,6 +18,7 @@
 
    Atmosphere hooks (--grain-opacity / --vignette / --ambient) live here too.
    Elevation lives in shadow.css; motion in motion.css; density in density.css.
+ * @copyright 2026 Joe Huss <detain@interserver.net>
    ============================================================================ */
 
 /* ---- Accent ramp — projector amber. Theme-invariant (amber identity is constant). ---- */
@@ -206,6 +212,11 @@
 }
 
 /* ---- inlined: spacing.css ---- */
+/*
+ * @copyright 2026 Joe Huss <detain@interserver.net>
+ */
+
+
 :root {
     --space-0: 0;
     --space-1: 0.25rem;
@@ -235,6 +246,7 @@
    separate, cacheable stylesheet — see that file for why). This file holds only
    the font-family tokens, scale, tracking/leading and utilities that reference
    those faces, so the bundled style.css stays free of inlined font bytes.
+ * @copyright 2026 Joe Huss <detain@interserver.net>
    ============================================================================ */
 
 /* ------------------------------- Tokens --------------------------------- */
@@ -294,7 +306,9 @@
 
 /* ---- inlined: radius.css ---- */
 /* @phlix/ui — Radius scale (Nocturne, R0.1). Theme-invariant.
-   Softer, more cinematic radii than the 0.7.0 baseline. */
+   Softer, more cinematic radii than the 0.7.0 baseline.
+ * @copyright 2026 Joe Huss <detain@interserver.net>
+ */
 :root {
   --radius-sm: 6px;     /* badges, ticks, kbd */
   --radius-md: 10px;    /* buttons, inputs, chips */
@@ -318,6 +332,7 @@
       --shadow-3  menus, popovers, up-next    (legacy lg, xl)
       --shadow-4  hover-lifted cards, player  (legacy 2xl)
       --glow-amber  accent emphasis ring + bloom
+ * @copyright 2026 Joe Huss <detain@interserver.net>
    ============================================================================ */
 
 :root,
@@ -373,6 +388,7 @@
    Theme-invariant easing + duration scale. Consumed by the primitives (R0.4)
    and the transition primitives <Reveal>/<PageTransition> (R0.5). Reduced-motion
    handling lives with those primitives + the global reset in index.css.
+ * @copyright 2026 Joe Huss <detain@interserver.net>
    ============================================================================ */
 :root {
   --ease-out:      cubic-bezier(0.22, 1, 0.36, 1);    /* default — decelerate */
@@ -399,6 +415,7 @@
       --control-gap   gap between inline controls
       --field-pad-y   vertical padding inside text fields
       --stack-gap     vertical rhythm between stacked rows
+ * @copyright 2026 Joe Huss <detain@interserver.net>
    ============================================================================ */
 :root,
 [data-density='comfortable'] {

@@ -10,6 +10,7 @@
       --control-gap   gap between inline controls
       --field-pad-y   vertical padding inside text fields
       --stack-gap     vertical rhythm between stacked rows
+ * @copyright 2026 Joe Huss <detain@interserver.net>
    ============================================================================ */
 :root,
 [data-density='comfortable'] {

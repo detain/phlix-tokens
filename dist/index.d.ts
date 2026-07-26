@@ -1,5 +1,6 @@
 /**
  * @phlix/tokens — framework-agnostic design tokens for Phlix.
+ * @copyright 2026 Joe Huss <detain@interserver.net>
  *
  * The single source of truth for theme tokens shared across web clients
  * (phlix-ui, windows, tizen) and non-CSS clients (React Native mobile, Roku).

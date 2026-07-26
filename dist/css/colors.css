@@ -12,6 +12,7 @@
 
    Atmosphere hooks (--grain-opacity / --vignette / --ambient) live here too.
    Elevation lives in shadow.css; motion in motion.css; density in density.css.
+ * @copyright 2026 Joe Huss <detain@interserver.net>
    ============================================================================ */
 
 /* ---- Accent ramp — projector amber. Theme-invariant (amber identity is constant). ---- */
