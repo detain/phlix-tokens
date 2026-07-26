@@ -20,12 +20,21 @@
 //   REGRESSION (9ec4298)  — fails against the pre-fix `lastCloseIdx` scan on
 //                           origin/master. These are the real guards for the
 //                           shipped corruption.
-//   REGRESSION (this fix) — passes on origin/master but fails against the first
-//                           cut of the fix, which mis-handled a degenerate
-//                           `/*/` first line, injected an LF line into a CRLF
-//                           file, and narrowed the duplicate guard to the
-//                           opening block only. Guards for defects introduced
-//                           while fixing the first one.
+//   REGRESSION (this fix) — fails against the first cut of the fix (7cb90da),
+//                           which mis-handled a degenerate `/*/` first line,
+//                           injected an LF line into a CRLF file, and narrowed
+//                           the duplicate guard to the opening block only.
+//                           Guards for defects introduced while fixing the
+//                           first one. Most of these PASS on origin/master
+//                           (master never attempted the behaviour being
+//                           guarded, so there's nothing there to get wrong) —
+//                           EXCEPT "preserves CRLF line endings on the lines
+//                           it injects", which FAILS on origin/master too:
+//                           master has no EOL-preservation logic at all, so
+//                           it also injects a bare-LF line into an otherwise
+//                           CRLF file. That one case discriminates against
+//                           BOTH prior implementations, not only the first
+//                           cut — round-2 review, finding 6.
 //   CHARACTERIZATION      — passes both before and after; documents intended
 //                           behaviour, does not discriminate. Kept on purpose,
 //                           but do not mistake it for a guard.
@@ -43,12 +52,17 @@
 // CLI lives in scripts/add-copyright.mjs and is not imported here.
 
 import { describe, it, expect } from 'vitest';
-import { injectCssComment, prependCssComment, COPYRIGHT } from '../scripts/lib/copyright.mjs';
+import { injectCssComment, prependCssComment, COPYRIGHT, MARKER } from '../scripts/lib/copyright.mjs';
 
 // Mirrors scripts/add-copyright.mjs::processCssFile — the whole-content
-// pre-check plus the inject-or-prepend dispatch.
+// pre-check plus the inject-or-prepend dispatch. MARKER is imported from the
+// same lib module that defines it (round-2 review, finding 3): before this,
+// the marker substring existed as three independent copies (this file,
+// scripts/add-copyright.mjs, and scripts/lib/copyright.mjs itself) that all
+// had to be kept in sync by hand despite deciding idempotency for every
+// caller. Now the lib is the single source and this test imports it.
 function process_(content) {
-  if (content.includes('detain@interserver.net')) return null;
+  if (content.includes(MARKER)) return null;
   return injectCssComment(content) ?? prependCssComment(content);
 }
 
@@ -272,5 +286,111 @@ describe('injectCssComment (CSS copyright injection)', () => {
     // Belt and braces: exactly one copyright line, i.e. nothing was added.
     const occurrences = (input.match(/@copyright/g) || []).length;
     expect(occurrences).toBe(1);
+  });
+
+  // CHARACTERIZATION — coverage added for round-2 review finding 1. The case
+  // above ("refuses a file whose existing copyright sits outside the opening
+  // block") calls injectCssComment() DIRECTLY, so it never exercises the
+  // composition every real caller actually uses:
+  // `injectCssComment(content) ?? prependCssComment(content)`, gated by an
+  // OUTER whole-content marker pre-check (add-copyright.mjs::processCssFile,
+  // and this file's own process_() helper). That composition passes
+  // identically on origin/master, the first-cut fix, and this PR — the outer
+  // pre-check has always made it safe — so this does not discriminate
+  // between implementations. It exists to prove the thing the corrected
+  // docblock on injectCssComment() now says explicitly: following the
+  // documented contract (pre-check the marker; only compose when it's
+  // absent) cannot yield a double header.
+  it('the composed caller path (outer marker pre-check + inject-or-prepend) never doubles the header', () => {
+    const input = ['/*', ' * hdr', ' */', ':root { --x: 1; }', '/* ' + COPYRIGHT.trim() + ' */', ''].join('\n');
+
+    // The real composition every caller uses: pre-check the whole content
+    // for the marker, and only reach injectCssComment/prependCssComment when
+    // it is absent.
+    const result = process_(input);
+    expect(result).toBeNull(); // the outer pre-check caught it before injectCssComment ran
+
+    // Contrast: a caller that skipped the outer pre-check and instead
+    // followed the OLD docblock's literal wording — "returns null ⇒ caller
+    // should prepend a fresh header instead" — would double the header, even
+    // though injectCssComment()'s OWN internal guard also fires here (it
+    // returns null too, just for the "already has it" reason, not the
+    // "nothing to inject into" reason the old wording implied). This is
+    // exactly the hazard finding 1 flagged (measured: 1 @copyright in, 2
+    // out); it is not itself a regression guard — no shipped caller ever
+    // composed it this way — but it proves the corrected docblock's warning
+    // is not hypothetical.
+    const naiveResult = injectCssComment(input) ?? prependCssComment(input);
+    const naiveOccurrences = (naiveResult.match(/@copyright/g) || []).length;
+    expect(naiveOccurrences).toBe(2);
+
+    // For the REAL composition: since it returned null (no write), the file
+    // on disk is left exactly as-is — still carrying exactly one
+    // @copyright, never two.
+    const effectiveContent = result ?? input;
+    const occurrences = (effectiveContent.match(/@copyright/g) || []).length;
+    expect(occurrences).toBe(1);
+  });
+
+  // CHARACTERIZATION — pins the "any CRLF anywhere in the whole input" rule
+  // crFor() implements (see its comment, corrected for round-2 review
+  // finding 2, which is NOT "detect and use the dominant terminator"). This
+  // exact mixed-EOL shape (3 bare LF, 1 CRLF) was previously untested. It
+  // also happens to discriminate against origin/master and the first-cut fix
+  // (7cb90da) — neither ever attempted EOL preservation at all, so both
+  // would inject a bare-LF line here instead — but it is listed as
+  // CHARACTERIZATION rather than a REGRESSION-(this-fix) guard because its
+  // purpose is coverage of the documented "any CRLF, not dominant
+  // terminator" behaviour, not discrimination for its own sake.
+  it('mixed-EOL input: the injected line adopts CRLF because one is present ANYWHERE, not because it is dominant', () => {
+    const input = '/**\n * hdr\r\n */\n:root{ --x: 1; }\n';
+
+    const result = injectCssComment(input);
+
+    const crlfCount = (result.match(/\r\n/g) || []).length;
+    const totalNewlines = (result.match(/\n/g) || []).length;
+    // Input: 3 bare LF + 1 CRLF. Output: 3 bare LF + 2 CRLF — the injected
+    // line takes CRLF too, even though the very next line (the closer `*/`)
+    // stays LF. Pins the exact behaviour crFor()'s corrected comment
+    // describes; not itself a defect fix.
+    expect(crlfCount).toBe(2);
+    expect(totalNewlines - crlfCount).toBe(3);
+    expect(result).toContain('@copyright');
+    // Nothing was destroyed: the selector and declaration survive intact.
+    expect(result).toContain(':root{ --x: 1; }');
+  });
+
+  // REGRESSION (pre-existing, fixed while touching this file for round-2
+  // review finding 8) — before the fix, prependCssComment() emitted its
+  // header IN FRONT OF a leading UTF-8 BOM, leaving the BOM sitting mid-file
+  // right before `:root`, which a CSS parser then reads as part of the
+  // selector, silently dropping the rule. Byte-identical to master, so
+  // pre-existing with zero exposure today (no BOM'd CSS ships in this repo).
+  it('keeps a leading BOM at the very start of the file, not before the injected header', () => {
+    const BOM = '﻿';
+    const input = BOM + [':root { --x: 1; }', ''].join('\n');
+
+    const result = process_(input);
+
+    // The BOM must be byte 0 of the OUTPUT, and appear nowhere else — that
+    // is the only position at which a CSS parser treats it as a BOM rather
+    // than a stray character glued onto the next token.
+    expect(result.charCodeAt(0)).toBe(0xfeff);
+    expect(result.indexOf(BOM, 1)).toBe(-1);
+
+    // Minimal, dependency-free re-creation of what a CSS parser sees as the
+    // first selector: strip the leading BOM, then any leading whitespace and
+    // comments, then read the next token. (Cross-checked against
+    // postcss.parse() during review: with the fix, postcss reports the first
+    // rule's selector as exactly ":root"; without it, as "U+FEFF:root" — a
+    // different, unmatchable selector, i.e. the rule silently vanishes.)
+    let rest = result.slice(BOM.length);
+    let prev;
+    do {
+      prev = rest;
+      rest = rest.replace(/^\s+/, '').replace(/^\/\*[\s\S]*?\*\//, '');
+    } while (rest !== prev);
+
+    expect(rest.startsWith(':root')).toBe(true);
   });
 });

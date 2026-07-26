@@ -15,6 +15,15 @@
  * exit-0 no-op. With the pure code in its own module the CLI needs no guard at
  * all, so there is no guard left to be wrong.
  *
+ * Header note (round-2 review, finding 5): this is the only file under
+ * scripts/ carrying a @copyright line — its three siblings (add-copyright.mjs,
+ * generate-tokens.mjs, build-css.mjs) have none, and `npm run copyright`'s
+ * walk() only covers src/ and test/, so nothing enforces either state. That
+ * asymmetry is deliberate, not an oversight: this file is kept IN SYNC BY HAND.
+ * Do not extend walk() to scripts/ to "fix" this — that changes CLI behaviour
+ * (it would start rewriting scripts/*.mjs) and is tracked separately from this
+ * decision.
+ *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
@@ -27,11 +36,25 @@ function isShebang(line) {
   return line.startsWith('#!');
 }
 
-// Detect the input's dominant line terminator and return the carriage return
-// that has to be appended to any line WE inject, so an injected line does not
-// end up LF-terminated inside an otherwise CRLF file. `content.split('\n')`
-// leaves the '\r' at the end of each original line, so re-joining with '\n'
-// reproduces CRLF for untouched lines — only injected lines need this.
+// Return the carriage return that has to be appended to any line WE inject,
+// so an injected line does not end up LF-terminated inside an otherwise CRLF
+// file. `content.split('\n')` leaves the '\r' at the end of each original
+// line, so re-joining with '\n' reproduces CRLF for untouched lines — only
+// injected lines need this.
+//
+// The rule is "any CRLF anywhere in the whole input", NOT "the dominant
+// terminator" — there is no counting or majority vote. A single '\r\n'
+// anywhere in an otherwise all-LF file is enough to make the injected line
+// CRLF too, regardless of what its immediate neighbour lines use. On a
+// genuinely mixed-EOL input (rare, and not something this repo's own CSS
+// ever produces) that can leave the injected line's terminator matching
+// neither the line before nor the line after it: e.g. for
+// `"/**\n * hdr\r\n */\n:root{…}\n"` (3 bare LF, 1 CRLF, and the CRLF line
+// happens to immediately precede the insertion point) the output has 3 bare
+// LF + 2 CRLF — the injected line is CRLF even though the line that follows
+// it (the closing ` */`) stays LF. That is intentional-by-omission
+// (simplicity over a rare edge case), not a bug to silently "improve" here —
+// see the mixed-EOL test below, which pins this exact behaviour.
 function crFor(content) {
   return content.includes('\r\n') ? '\r' : '';
 }
@@ -111,9 +134,31 @@ function prependTsDocblock(content) {
 // declarations, as a naked, delimiter-less line. That corrupted 5 CSS
 // files in commit 9ec4298 (fixed in #9); see the worklog for detail.
 //
-// Returns null (meaning "caller should prepend a fresh header instead") when
-// the content already carries the marker anywhere, when line 0 does not open a
-// block comment, or when that block comment is never terminated.
+// Returns null for TWO DIFFERENT reasons that a caller MUST NOT treat the
+// same way (round-2 review, finding 1 — a caller that conflates them can
+// double the header: measured 1 @copyright in, 2 out):
+//
+//   1. NOTHING TO INJECT INTO: line 0 does not open a block comment, or that
+//      opening block comment is never terminated. The content has no
+//      existing header near the top, so the caller MAY safely prepend a
+//      fresh one via prependCssComment().
+//
+//   2. ALREADY HAS THE HEADER: the content carries the marker ANYWHERE (not
+//      just inside the opening comment — see the "refuses a file whose
+//      existing copyright sits outside the opening block" test), checked
+//      before any comment-shape reasoning even runs. The caller MUST do
+//      NOTHING. Calling prependCssComment() here produces a SECOND header.
+//
+// Both reasons collapse to the same bare `null`, so the return value alone
+// cannot tell a caller which one happened. That is why every caller in this
+// repo (scripts/add-copyright.mjs::processCssFile, and this file's own test
+// helper) checks `content.includes(MARKER)` FIRST, BEFORE ever calling
+// injectCssComment, and only runs `injectCssComment(content) ??
+// prependCssComment(content)` when that check is false. If you add a new
+// caller: keep that outer pre-check. Do not compose
+// `injectCssComment(x) ?? prependCssComment(x)` without it — on a
+// marker-carrying file that composition prepends a second header on top of
+// the first one, unconditionally, every time.
 function injectCssComment(content) {
   // Whole-content duplicate guard, so this function is safe to call standalone
   // and not just via a caller that pre-checks (processCssFile does pre-check,
@@ -168,11 +213,25 @@ function injectCssComment(content) {
   return out.join('\n');
 }
 
+// A leading UTF-8 BOM (U+FEFF) is only recognised as a BOM by CSS parsers
+// (postcss included) when it is the very first three bytes of the file.
+const BOM = '﻿';
+
 // Prepend a new CSS block comment at the top.
+//
+// Round-2 review, finding 8: if `content` starts with a BOM, the header must
+// still land AFTER it, not before — prepending in front of the BOM leaves it
+// sitting mid-file, in front of `:root` instead of in front of the file, and
+// postcss then parses the next rule's selector as the literal string
+// "U+FEFF:root" instead of ":root", silently dropping the whole rule.
+// Pre-existing (byte-identical to master here), zero exposure today (no
+// BOM'd CSS in this repo), fixed while touching this file anyway.
 function prependCssComment(content) {
-  const eol = crFor(content) + '\n';
+  const hasBom = content.startsWith(BOM);
+  const body = hasBom ? content.slice(BOM.length) : content;
+  const eol = crFor(body) + '\n';
   const block = ['/*', COPYRIGHT, ' */', '', ''].join(eol);
-  return block + eol + content;
+  return (hasBom ? BOM : '') + block + eol + body;
 }
 
 export { injectCssComment, prependCssComment, injectTsDocblock, prependTsDocblock, COPYRIGHT, MARKER };

@@ -18,9 +18,7 @@
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join, extname, basename } from 'node:path';
 
-import { injectCssComment, prependCssComment, injectTsDocblock, prependTsDocblock } from './lib/copyright.mjs';
-
-const MARKER = 'detain@interserver.net';
+import { injectCssComment, prependCssComment, injectTsDocblock, prependTsDocblock, MARKER } from './lib/copyright.mjs';
 
 const EXCLUDE_DIRS = new Set(['node_modules', 'dist', 'vendor', '.git', 'coverage', '.github']);
 const EXCLUDE_FILES = new Set(['tokens.generated.ts', 'tokens.generated.json']);
