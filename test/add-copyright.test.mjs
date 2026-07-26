@@ -2,7 +2,8 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-// Tests for the CSS copyright injection in scripts/lib/copyright.mjs.
+// Tests for the copyright-header injection helpers (CSS and TS/JS) in
+// scripts/lib/copyright.mjs.
 //
 // Root cause of the original defect (fixed in the accompanying change): the
 // function used to scan for the LAST line containing `*/` in the WHOLE file
@@ -15,43 +16,61 @@
 // PR #9).
 //
 // NOT every case below is a regression guard, and they are labelled so the
-// distinction survives. Each `it()` carries one of:
+// distinction survives. Each case's label is derived from ONE measured
+// signature — (result of running THIS test body against origin/master's
+// implementation, result against 7cb90da's, the first `*/`-scan fix attempt)
+// — so the four categories below partition all 12 cases exhaustively and
+// disjointly; every label is mechanically checkable against that pair of
+// runs, not a matter of judgement:
 //
-//   REGRESSION (9ec4298)  — fails against the pre-fix `lastCloseIdx` scan on
-//                           origin/master. These are the real guards for the
-//                           shipped corruption.
-//   REGRESSION (this fix) — fails against the first cut of the fix (7cb90da),
-//                           which mis-handled a degenerate `/*/` first line,
-//                           injected an LF line into a CRLF file, and narrowed
-//                           the duplicate guard to the opening block only.
-//                           Guards for defects introduced while fixing the
-//                           first one. Most of these PASS on origin/master
-//                           (master never attempted the behaviour being
-//                           guarded, so there's nothing there to get wrong) —
-//                           EXCEPT the two CRLF-preservation cases ("preserves
-//                           CRLF line endings on the lines it injects" and
-//                           "mixed-EOL input: the injected line adopts CRLF
-//                           because one is present ANYWHERE, not because it
-//                           is dominant"), which FAIL on origin/master too:
-//                           master has no EOL-preservation logic at all, so
-//                           it also injects a bare-LF line in both shapes.
-//                           Those two cases discriminate against BOTH prior
-//                           implementations, not only the first cut —
-//                           round-2 review finding 6, and round-3 review
-//                           finding 1.
-//   REGRESSION (pre-existing) — fails against BOTH origin/master and the
-//                           first-cut fix (7cb90da), but — unlike the
-//                           category above — the defect it guards was not
-//                           introduced by either `*/`-scan fix attempt. It
-//                           already existed in prependCssComment() on master,
-//                           untouched by 9ec4298 or 7cb90da, and only got
-//                           repaired because this round touched the same
-//                           file for an unrelated reason (round-2 review,
-//                           finding 8). Zero production exposure today (no
-//                           BOM'd CSS ships in this repo).
-//   CHARACTERIZATION      — passes both before and after; documents intended
-//                           behaviour, does not discriminate. Kept on purpose,
-//                           but do not mistake it for a guard.
+//   REGRESSION (9ec4298)      — FAILS against origin/master, PASSES against
+//                           7cb90da. The original shipped defect: master
+//                           scanned for the LAST `*/` in the whole file
+//                           instead of the terminator of its OWN opening
+//                           comment, so a later `/* ... */` annotation
+//                           comment (every CSS token file has several,
+//                           including inline trailing comments on individual
+//                           declarations) decided where the stray copyright
+//                           line landed — mid-`:root{}`, between two
+//                           declarations, as a naked line with no
+//                           delimiters. That shipped in 9ec4298 and corrupted
+//                           5 CSS files (fixed in PR #9). 7cb90da's first-cut
+//                           fix (scan for the FIRST `*/` instead) already
+//                           resolves this signature, so these are the real
+//                           regression guards for the shipped corruption.
+//   REGRESSION (this fix)    — PASSES against origin/master, FAILS against
+//                           7cb90da. A defect INTRODUCED by 7cb90da's
+//                           first-cut fix itself — master never attempted the
+//                           behaviour being guarded, so there was nothing
+//                           there to get wrong — and fixed in this round: a
+//                           degenerate `/*/` first line mis-handled, and the
+//                           duplicate guard narrowed to the opening block
+//                           only.
+//   REGRESSION (pre-existing) — FAILS against BOTH origin/master and
+//                           7cb90da. Unlike the category above, the defect
+//                           was NOT introduced by either `*/`-scan fix
+//                           attempt: `prependCssComment()` and `crFor()` are
+//                           byte-identical between master and 7cb90da, so
+//                           whatever they got wrong (or never attempted),
+//                           they got wrong identically, before this branch
+//                           ever touched the file. Covers two unrelated
+//                           defects, both repaired only because this round
+//                           touched the same functions for other reasons:
+//                           EOL (CRLF) preservation, absent from every prior
+//                           implementation of `injectCssComment()` and
+//                           `prependCssComment()` (round-2 review finding 6,
+//                           round-3 review finding 1); and a leading UTF-8
+//                           BOM being emitted IN FRONT of a fresh header
+//                           instead of after it, in BOTH
+//                           `prependCssComment()` (round-2 review, finding 8)
+//                           and `prependTsDocblock()` (round-3 review,
+//                           finding 5). No tracked file in this repo carries
+//                           a leading BOM at all, so the BOM half of this
+//                           category has zero production exposure today.
+//   CHARACTERIZATION         — PASSES against BOTH origin/master and 7cb90da.
+//                           Documents intended behaviour without
+//                           discriminating between any implementation. Kept
+//                           on purpose, but do not mistake it for a guard.
 //
 // This is a plain Node .mjs test (not .ts) because the module under test is
 // plain Node ESM and is outside the TypeScript project: tsconfig.json's
@@ -247,9 +266,13 @@ describe('injectCssComment (CSS copyright injection)', () => {
     );
   });
 
-  // REGRESSION (this fix) — an injected line must adopt the file's own EOL.
-  // A bare-LF line inside an otherwise CRLF file is exactly the class of
-  // mixed-EOL damage this estate has been bitten by before.
+  // REGRESSION (pre-existing) — an injected line must adopt the file's own
+  // EOL. Fails against BOTH origin/master and 7cb90da: neither had any
+  // EOL-preservation logic at all (prependCssComment() and crFor() are
+  // byte-identical between the two), so this predates and is independent of
+  // the `*/`-scan fix — round-2 review, finding 6. A bare-LF line inside an
+  // otherwise CRLF file is exactly the class of mixed-EOL damage this estate
+  // has been bitten by before.
   it('preserves CRLF line endings on the lines it injects', () => {
     const hasOnlyCrlf = (s) => !/(^|[^\r])\n/.test(s);
 
@@ -347,10 +370,10 @@ describe('injectCssComment (CSS copyright injection)', () => {
     expect(occurrences).toBe(1);
   });
 
-  // REGRESSION (this fix) — pins the "any CRLF anywhere in the whole input"
-  // rule crFor() implements (see its comment, corrected for round-2 review
-  // finding 2, which is NOT "detect and use the dominant terminator"). This
-  // exact mixed-EOL shape (3 bare LF, 1 CRLF) was previously untested.
+  // REGRESSION (pre-existing) — pins the "any CRLF anywhere in the whole
+  // input" rule crFor() implements (see its comment, corrected for round-2
+  // review finding 2, which is NOT "detect and use the dominant terminator").
+  // This exact mixed-EOL shape (3 bare LF, 1 CRLF) was previously untested.
   // Discriminates against BOTH origin/master and the first-cut fix
   // (7cb90da): neither ever attempted EOL preservation at all, so both
   // inject a bare-LF line here instead of adopting CRLF (measured: `expected
@@ -398,7 +421,17 @@ describe('injectCssComment (CSS copyright injection)', () => {
     // strip uses a class that explicitly EXCLUDES U+FEFF, unlike bare `\s`
     // (which, per ECMA-262, treats U+FEFF as whitespace and would silently
     // swallow a stray, non-leading BOM — exactly the axis this test exists
-    // to guard; round-3 review, finding 3). Cross-checked against
+    // to guard; round-3 review, finding 3). That is not the only divergence
+    // between JS `\s` and CSS whitespace this approximation is exposed to —
+    // more generally, JS `\s` still matches characters postcss does not
+    // treat as CSS whitespace at all: measured, `'\f\v:root{…}'` emulates
+    // clean and postcss also reports the selector as exactly ":root" (no
+    // divergence there), but `' :root{…}'` (leading U+00A0) emulates clean
+    // while postcss reports the selector as " :root" (the NBSP is part of
+    // the selector, not stripped) — a real divergence. Nothing asserted by
+    // this test is false, since neither shape is fed to it; noted here only
+    // so the disclaimer names the class this test's own EXCLUDES-U+FEFF fix
+    // is one instance of, not the whole of it. Cross-checked against
     // postcss.parse() during review: on this fixed-up input postcss reports
     // the first rule's selector as exactly ":root"; on the pre-fix damage
     // shape (BOM glued to `:root`, not at byte 0) it reports "U+FEFF:root"
@@ -461,6 +494,41 @@ describe('prependTsDocblock (TS/JS copyright injection — BOM handling)', () =>
     // The docblock (with the copyright line) follows the BOM, and the
     // original statement survives untouched.
     expect(result.slice(BOM.length).startsWith('/**')).toBe(true);
+    expect(result).toContain(COPYRIGHT);
+    expect(result).toContain('export const x = 1;');
+  });
+
+  // REGRESSION (pre-existing) — same root cause and category as the case
+  // above, but on the shebang path specifically, which the BOM fix changes
+  // the most: pre-fix, `isShebang(BOM + '#!...')` returned false (the leading
+  // BOM defeats `startsWith('#!')`), so the fresh docblock was spliced in at
+  // index 0 — IN FRONT of the shebang line — demoting the shebang off line 0
+  // entirely (a shebang is honoured by the OS/`env` only at byte 0 of the
+  // file). Post-fix the BOM is stripped before the shebang check runs, so the
+  // shebang keeps line 0 (right after the BOM) and the docblock lands after
+  // it, matching this function's own "prepend ... after any shebang"
+  // contract. Fails identically against BOTH origin/master and the
+  // first-cut fix (7cb90da): neither ever stripped the BOM before checking
+  // for a shebang.
+  it('keeps a shebang at line 0 when a leading BOM is present, with the docblock landing after both', () => {
+    const BOM = '﻿';
+    const input = BOM + '#!/usr/bin/env node\nexport const x = 1;\n';
+
+    const result = prependTsDocblock(input);
+
+    // The BOM must be byte 0 of the OUTPUT, and appear nowhere else.
+    expect(result.charCodeAt(0)).toBe(0xfeff);
+    expect(result.indexOf(BOM, 1)).toBe(-1);
+
+    // The shebang is the very next line after the BOM — not demoted by the
+    // docblock landing in front of it.
+    expect(result.slice(BOM.length).split('\n')[0]).toBe('#!/usr/bin/env node');
+
+    // The docblock (and the copyright line inside it) follows the shebang,
+    // not the reverse, and the original statement survives untouched.
+    const shebangIdx = result.indexOf('#!/usr/bin/env node');
+    const docblockIdx = result.indexOf('/**');
+    expect(docblockIdx).toBeGreaterThan(shebangIdx);
     expect(result).toContain(COPYRIGHT);
     expect(result).toContain('export const x = 1;');
   });

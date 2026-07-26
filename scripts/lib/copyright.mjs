@@ -22,8 +22,8 @@
  * enforces either state. That asymmetry is deliberate, not an oversight: this
  * file is kept IN SYNC BY HAND. Do not extend walk() to scripts/ to "fix"
  * this — that changes CLI behaviour (it would start rewriting scripts/*.mjs).
- * There is no separate ticket tracking this: it is a one-off decision made
- * here, not a deferred piece of work.
+ * This is deliberate, decided in PR #11; not a deferred task tracked
+ * elsewhere.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
@@ -32,6 +32,16 @@ const COPYRIGHT = ' * @copyright 2026 Joe Huss <detain@interserver.net>';
 
 // The substring that marks a file as already carrying the header.
 const MARKER = 'detain@interserver.net';
+
+// A leading UTF-8 BOM (U+FEFF). Only recognised as a BOM by CSS parsers
+// (postcss included) when it is the very first three bytes of the file —
+// which is what prependCssComment() below relies on to keep it there.
+// Harmless ECMAScript WhiteSpace to `tsc`/node wherever it lands instead, so
+// prependTsDocblock() treating it the same way is for consistency across the
+// function family, not out of necessity. Declared here, ahead of both
+// prependTsDocblock() and prependCssComment() (its two callers), rather than
+// beside either one.
+const BOM = '﻿';
 
 function isShebang(line) {
   return line.startsWith('#!');
@@ -110,7 +120,7 @@ function injectTsDocblock(content) {
 // to `tsc`/node (unlike the CSS case, where it joins the following selector
 // and silently drops the rule) — but leaving one path fixed and the other
 // not is an inconsistency in the same function family, so it is fixed here
-// too. `injectTsDocblock()` below does NOT have this defect: it only splices
+// too. `injectTsDocblock()` above does NOT have this defect: it only splices
 // a new line into the array and never touches line 0, so a leading BOM
 // already stays exactly where it was.
 function prependTsDocblock(content) {
@@ -227,10 +237,6 @@ function injectCssComment(content) {
 
   return out.join('\n');
 }
-
-// A leading UTF-8 BOM (U+FEFF) is only recognised as a BOM by CSS parsers
-// (postcss included) when it is the very first three bytes of the file.
-const BOM = '﻿';
 
 // Prepend a new CSS block comment at the top.
 //
