@@ -66,10 +66,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     guard leaves nothing to get wrong. `scripts/generate-tokens.d.mts` is replaced
     by `scripts/lib/tokens.d.mts`.
   - **`generate` now proves it did work.** `assertNonVacuous()` rejects a model
-    with zero `:root` tokens, zero tokens in any of the three themes, or zero
-    tokens in either density variant, and an empty `src/css` is rejected up front;
-    each artifact is then read back and **byte-compared** after writing. Previously
-    all of these wrote structurally valid but all-empty artifacts and exited 0.
+    with zero `:root` tokens, zero tokens in any of the three themes, zero tokens
+    in either density variant, or zero tokens in any token family declared by
+    `FILE_FAMILY` (`spacing` / `radius` / `motion` / `typography`, plus `shadow`
+    per theme — a deleted `typography.css` used to emit `tokens.typography = {}`
+    and exit 0); an empty `src/css` is rejected up front; each artifact is then
+    read back and **byte-compared** after writing. Previously all of these wrote
+    structurally valid but all-empty artifacts and exited 0. The family checks are
+    derived from the `FILE_FAMILY` table rather than hardcoded, so adding a token
+    family remains a single-entry change and gets its vacuity check for free.
   - **CI proves the drift gate can fail.** A new `Prove the up-to-date gate is not
     vacuous` step perturbs both artifacts and requires `generate` to restore them
     byte-for-byte. Measured against the pre-fix generator: the old gate returns 0
@@ -77,12 +82,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Regression coverage is `test/generate-tokens.test.mjs`, which spawns the script
   as a real child process against throwaway trees, including through both a
   symlinked file and a symlinked directory. Measured against `a80514c`:
-  **9 failed | 6 passed (15)**; against this fix all 16 pass. Every case carries a
+  **11 failed | 17 passed (28)**; against this fix all 29 pass. Every case carries a
   `REGRESSION` / `CHARACTERIZATION` label derived from that A/B, reproducible via
-  the two documented env overrides. Its last table also asserts that **no** script
-  under `scripts/` gates on `pathToFileURL(process.argv[1])`, so the idiom cannot
-  come back in a sibling script. Sweep result: `generate-tokens.mjs` was the only
-  file in the repo still carrying it.
+  the two documented env overrides. Its last tables also assert that **no** script
+  under `scripts/` branches on `import.meta.url` compared against anything derived
+  from `process.argv[1]`, and that the scan itself flags every measured spelling of
+  that idiom (including an `argv[1]` held behind a variable and a non-`===`
+  spelling, which the two literal patterns missed), so the idiom cannot come back
+  in a sibling script and the enforcement cannot drift narrower than the rule.
+  Sweep result: `generate-tokens.mjs` was the only file in the repo still carrying
+  it.
+- `vitest` coverage now measures the build scripts. `vite.config.ts`'s
+  `coverage.include` was `['src/**/*.ts']`, so `scripts/lib/tokens.mjs` and
+  `scripts/lib/copyright.mjs` — the pure modules the suite imports directly —
+  reported **no coverage at all**; the report covered only `src/accent.ts` and
+  `src/themes.ts` and read `100% (49/49)`. `include` is now
+  `['src/**/*.ts', 'scripts/**/*.mjs']` (measured: `134/361` statements, with the
+  three CLI entry points at 0% because they are only ever exercised as child
+  processes). Report-only — no coverage threshold is configured and CI runs plain
+  `npm run test:run` with no `--coverage`, so no gate changes.
 - Repair the five CSS files broken by the copyright-header pass (`9ec4298`).
   That commit inserted a **naked** `* @copyright …` line — with no `/* */`
   delimiters — into the *middle* of `radius.css` (L8), `motion.css` (L17),
@@ -117,7 +135,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   generation stays a byte-for-byte no-op on the real CSS (the drift gate is
   unchanged) — the guard is purely defensive. `resolveValue` /
   `assertVarFallbackDepth` are importable for unit coverage — originally from the
-  generator itself behind a CLI-entry main-guard, and since the symlink fix below
+  generator itself behind a CLI-entry main-guard, and since the symlink fix above
   from the side-effect-free `scripts/lib/tokens.mjs`.
 - Unify the two accent-contrast ("ink on accent") systems to a single source of
   truth (B2). The runtime accent picker (`deriveAccentVars`) and the static CSS

@@ -41,6 +41,13 @@
  * vars resolved against (base ∪ that theme). `resolveTheme(name)` returns the
  * flat merge base ∪ theme.
  *
+ * The @copyright line below is HAND-MAINTAINED: `npm run copyright`'s walk()
+ * covers only src/ and test/, so nothing under scripts/ is ever rewritten
+ * automatically. scripts/lib/copyright.mjs holds the authoritative list of which
+ * files under scripts/ carry a header and why (this file and that one do; the
+ * three CLI entry points and tokens.d.mts do not) — update that list if you
+ * change this line.
+ *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
@@ -346,6 +353,29 @@ function buildTokens(files) {
  * two files that no longer describe the CSS at all. Fail closed, exactly as
  * `assertVarFallbackDepth` does for an unresolvable value.
  *
+ * What is asserted: `tokens.base`, each of the three themes, each of the two
+ * density variants, and every token FAMILY declared with a non-null value in
+ * `FILE_FAMILY` (`spacing`, `radius`, `motion`, `typography`, plus `shadow` per
+ * theme). The family checks are derived from `FILE_FAMILY` itself rather than
+ * hardcoded, so adding a token family stays the single-entry change CQ2 made it:
+ * the new family gets its vacuity assertion for free. They close a real hole —
+ * with `typography.css` deleted the generator emitted `tokens.typography = {}`
+ * and exited 0, which CI's drift gate catches only if nobody commits the
+ * regenerated artifact.
+ *
+ * Deliberate strictness, recorded here so a future refactor is not misdiagnosed
+ * as a bug in this function: the per-theme check requires each theme to declare
+ * at least one of its OWN vars, which is stricter than semantically necessary for
+ * whichever theme doubles as the `:root` default. A Nocturne expressed purely as
+ * `:root` defaults, with no `[data-theme='nocturne']` block anywhere, is a
+ * coherent design and would still fail here. It is safe today only because this
+ * repo's established idiom is the FOLDED selector `:root, [data-theme='nocturne']`
+ * (colors.css, shadow.css — and density.css does the same for `comfortable`),
+ * which populates the base group and the theme group from one block. If the CSS
+ * ever moves to `:root`-only defaults, RELAX THIS ASSERTION DELIBERATELY (assert
+ * on `themes[t]`, the flat base ∪ theme merge, instead of `tokens[t]`) rather
+ * than treating the failure as an assertion bug.
+ *
  * @param {{tokens: Record<string, unknown>, themes: Record<string, unknown>}} built
  */
 function assertNonVacuous(built) {
@@ -373,6 +403,32 @@ function assertNonVacuous(built) {
         `generate-tokens: density '${d}' resolved to 0 tokens — refusing to write an empty ` +
           `density map and report success. Check that src/css/density.css still declares ` +
           `[data-density='${d}'] { --… }.`,
+      );
+    }
+  }
+  // Every token family FILE_FAMILY declares must have produced at least one
+  // token. Driven off FILE_FAMILY so a new family is still a one-entry change.
+  for (const [file, family] of Object.entries(FILE_FAMILY)) {
+    if (family === null) continue; // contributes to no family map by design
+    if (family === 'shadow') {
+      // tokens.shadow is a PER-THEME map (CQ3), not a flat base subset, so each
+      // theme's ladder is asserted separately.
+      for (const t of THEME_NAMES) {
+        if (count(tokens.shadow?.[t]) === 0) {
+          throw new Error(
+            `generate-tokens: the '${t}' shadow ladder resolved to 0 tokens — refusing to ` +
+              `write an empty family map and report success. Check that src/css/${file} still ` +
+              `declares --shadow-… / --glow-… under [data-theme='${t}'].`,
+          );
+        }
+      }
+      continue;
+    }
+    if (count(tokens[family]) === 0) {
+      throw new Error(
+        `generate-tokens: token family '${family}' resolved to 0 tokens — refusing to write ` +
+          `an empty family map and report success. Check that src/css/${file} still exists and ` +
+          `declares :root { --… }.`,
       );
     }
   }

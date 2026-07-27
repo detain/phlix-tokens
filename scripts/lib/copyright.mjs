@@ -15,15 +15,32 @@
  * exit-0 no-op. With the pure code in its own module the CLI needs no guard at
  * all, so there is no guard left to be wrong.
  *
- * Header note (round-2 review, finding 5): this is the only file under
- * scripts/ carrying a @copyright line — its four siblings (add-copyright.mjs,
- * generate-tokens.mjs, generate-tokens.d.mts, build-css.mjs) have none, and
- * `npm run copyright`'s walk() only covers src/ and test/, so nothing
- * enforces either state. That asymmetry is deliberate, not an oversight: this
- * file is kept IN SYNC BY HAND. Do not extend walk() to scripts/ to "fix"
- * this — that changes CLI behaviour (it would start rewriting scripts/*.mjs).
- * This is deliberate, decided in PR #11; not a deferred task tracked
- * elsewhere.
+ * Header note (round-2 review of PR #11, finding 5; refreshed in PR #12 when a
+ * second library appeared). THIS COMMENT IS THE ONLY RECORD OF THE INTENDED
+ * HEADER STATE UNDER scripts/, so it must be corrected by hand whenever that
+ * state changes — nothing enforces it mechanically, because `npm run copyright`'s
+ * walk() covers only src/ and test/ (see the "---- Main ----" section of
+ * scripts/add-copyright.mjs).
+ *
+ * Intended state, as of PR #12 — the rule is "the pure, side-effect-free,
+ * unit-tested modules under scripts/lib/ carry the header; the CLI entry points
+ * do not":
+ *   CARRY a @copyright line (2): scripts/lib/copyright.mjs (this file),
+ *                                scripts/lib/tokens.mjs
+ *   NONE (4):                    scripts/add-copyright.mjs,
+ *                                scripts/build-css.mjs,
+ *                                scripts/generate-tokens.mjs,
+ *                                scripts/lib/tokens.d.mts
+ * (`grep -rln '@copyright' scripts/` is the one-command check; it must list
+ * exactly the two files above.)
+ *
+ * That asymmetry is deliberate, not an oversight: these headers are kept IN SYNC
+ * BY HAND. If you add a module under scripts/lib/, give it the header and add it
+ * to the list above; if you add, remove or move any header under scripts/, fix
+ * the list in the same commit. Do NOT extend walk() to scripts/ to "fix" the
+ * asymmetry — that changes CLI behaviour (it would start rewriting
+ * scripts/*.mjs). Decided in PR #11, re-affirmed in PR #12; not a deferred task
+ * tracked elsewhere.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */

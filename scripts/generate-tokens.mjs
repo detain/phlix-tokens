@@ -32,6 +32,9 @@
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+// Imported explicitly rather than used as a global: eslint.config.js declares
+// only `console` and `process` as globals for scripts/**/*.mjs.
+import { Buffer } from 'node:buffer';
 
 import {
   THEME_NAMES,
@@ -83,10 +86,15 @@ for (const [path, expected] of [
 ]) {
   const actual = readFileSync(path, 'utf8');
   if (actual !== expected) {
+    // Buffer.byteLength, not String.length: the rendered output contains
+    // multi-byte characters (em dashes, `∪`), and String.length counts UTF-16
+    // code units, so it is not a byte count. This message exists to be read by a
+    // human diagnosing a write that did not land, so the number has to be the
+    // one they would see from `wc -c`/`ls -l`.
     throw new Error(
-      `generate-tokens: wrote ${path} (${expected.length} bytes) but reading it back ` +
-        `returned ${actual.length} bytes that do not match — refusing to report success ` +
-        `on an artifact that did not land on disk.`,
+      `generate-tokens: wrote ${path} (${Buffer.byteLength(expected)} bytes) but reading it ` +
+        `back returned ${Buffer.byteLength(actual)} bytes that do not match — refusing to ` +
+        `report success on an artifact that did not land on disk.`,
     );
   }
 }

@@ -42,11 +42,21 @@
 //                     discriminating between the implementations. Kept on
 //                     purpose, but do not mistake it for a guard.
 //
-// Measured signature of this file against a80514c: `Tests 9 failed | 6 passed
-// (15)`. (15 rather than 16 because the reconstructed tree has four `.mjs` files
+// Measured signature of this file against a80514c: `Tests 11 failed | 17 passed
+// (28)`. (28 rather than 29 because the reconstructed tree has four `.mjs` files
 // under scripts/ instead of five — it predates scripts/lib/tokens.mjs — so the
 // parameterized guard table at the bottom yields one row fewer.) Against the fix:
-// all 16 pass.
+// all 29 pass.
+//
+// One group needs its own note: the "the scan itself flags every measured
+// spelling of the guard" table near the bottom never spawns the script — it
+// exercises THIS FILE's own `hasSymlinkUnsafeMainGuard` predicate against literal
+// source snippets. It therefore passes against both implementations, i.e. it is
+// CHARACTERIZATION under the taxonomy above, and it is labelled as such. It is
+// still measured, just against the predicate rather than the generator: delete
+// clause 3 of that predicate and exactly two rows go red
+// (`expected false to be true`). Its job is to stop the enforcement from drifting
+// narrower than the prose rule it claims to enforce.
 //
 // To re-measure, point the two overrides below at a reconstructed tree:
 //
@@ -134,12 +144,28 @@ function run(entry) {
 const tsOut = (root) => join(root, 'src', 'tokens.generated.ts');
 const jsonOut = (root) => join(root, 'src', 'tokens.generated.json');
 
-/** A minimal stylesheet set that satisfies every non-vacuity assertion. */
+/**
+ * A minimal stylesheet set that satisfies every non-vacuity assertion.
+ *
+ * "Minimal" is defined by what `assertNonVacuous` demands, so it grew when the
+ * family assertions were added: one `:root` token per non-null `FILE_FAMILY`
+ * entry (spacing / radius / motion / typography) plus a per-theme `--shadow-*`
+ * ladder, because `tokens.shadow` is a per-theme map (CQ3) rather than a flat
+ * base subset. shadow.css deliberately uses the repo's own folded
+ * `:root, [data-theme='nocturne']` idiom.
+ */
 const MINIMAL_CSS = {
   'colors.css': ":root { --bg: #000; }\n[data-theme='nocturne'] { --bg: #000; }\n" +
     "[data-theme='daylight'] { --bg: #fff; }\n[data-theme='midnight'] { --bg: #111; }\n",
   'density.css': "[data-density='comfortable'] { --row-h: 3rem; }\n" +
     "[data-density='compact'] { --row-h: 2rem; }\n",
+  'spacing.css': ':root { --space-2: 8px; }\n',
+  'radius.css': ':root { --radius-md: 8px; }\n',
+  'motion.css': ':root { --dur-fast: 120ms; }\n',
+  'typography.css': ':root { --font-size-md: 1rem; }\n',
+  'shadow.css': ":root, [data-theme='nocturne'] { --shadow-1: 0 1px 2px #000; }\n" +
+    "[data-theme='daylight'] { --shadow-1: 0 1px 2px #ccc; }\n" +
+    "[data-theme='midnight'] { --shadow-1: 0 1px 3px #000; }\n",
 };
 
 describe('generate-tokens CLI — invocation through a symlink', () => {
@@ -264,6 +290,10 @@ describe('generate-tokens CLI — a vacuous run must exit non-zero', () => {
     const css = { ...MINIMAL_CSS };
     css['colors.css'] = ":root { --bg: #000; }\n[data-theme='nocturne'] { --bg: #000; }\n" +
       "[data-theme='daylight'] { --bg: #fff; }\n"; // midnight removed
+    // midnight has to go from EVERY file that declares it: the shadow ladder
+    // would otherwise keep tokens.midnight non-empty on its own.
+    css['shadow.css'] = ":root, [data-theme='nocturne'] { --shadow-1: 0 1px 2px #000; }\n" +
+      "[data-theme='daylight'] { --shadow-1: 0 1px 2px #ccc; }\n";
     const root = makeScratch({ css });
     const r = run(join(root, 'scripts', 'generate-tokens.mjs'));
 
@@ -281,6 +311,43 @@ describe('generate-tokens CLI — a vacuous run must exit non-zero', () => {
 
     expect(r.status).not.toBe(0);
     expect(r.stderr).toMatch(/density 'compact' resolved to 0 tokens/);
+    expect(existsSync(tsOut(root))).toBe(false);
+  });
+
+  // REGRESSION — a whole token family's source stylesheet deleted. The family
+  // maps are built from a hardcoded FILE_FAMILY table, so a missing
+  // typography.css emitted `tokens.typography = {}` and exited 0: every non-CSS
+  // consumer (React Native / Roku) silently got an empty family. CI's drift gate
+  // only catches this if nobody commits the regenerated artifact, which is
+  // exactly the "gate with no teeth" shape this change exists to remove.
+  it('fails when a token family loses its source stylesheet', () => {
+    const css = { ...MINIMAL_CSS };
+    delete css['typography.css'];
+    const root = makeScratch({ css });
+    const r = run(join(root, 'scripts', 'generate-tokens.mjs'));
+
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toMatch(/token family 'typography' resolved to 0 tokens/);
+    // The message must name the file to look at, not just the family.
+    expect(r.stderr).toMatch(/src\/css\/typography\.css/);
+    expect(existsSync(tsOut(root))).toBe(false);
+  });
+
+  // REGRESSION — same hole for the per-theme half of the family assertions.
+  // `tokens.shadow` is a Record<ThemeName, …> (CQ3), so one theme's ladder can
+  // vanish while the family map itself stays non-empty; asserting only
+  // `tokens.shadow` would miss it. The theme's own [data-theme] block still
+  // declares --bg, so the per-theme token assertion above passes and this is the
+  // only thing standing between a deleted ladder and a green exit 0.
+  it('fails when one theme loses its shadow ladder', () => {
+    const css = { ...MINIMAL_CSS };
+    css['shadow.css'] = ":root, [data-theme='nocturne'] { --shadow-1: 0 1px 2px #000; }\n" +
+      "[data-theme='midnight'] { --shadow-1: 0 1px 3px #000; }\n"; // daylight removed
+    const root = makeScratch({ css });
+    const r = run(join(root, 'scripts', 'generate-tokens.mjs'));
+
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toMatch(/the 'daylight' shadow ladder resolved to 0 tokens/);
     expect(existsSync(tsOut(root))).toBe(false);
   });
 
@@ -307,6 +374,49 @@ describe('scripts/ carry no symlink-unsafe main-guard', () => {
   const codeOnly = (src) =>
     src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/[^\n]*/g, '$1');
 
+  /**
+   * The rule, stated once as ONE predicate instead of as a list of spellings:
+   * no script under scripts/ may branch on `import.meta.url` compared against
+   * anything derived from `process.argv[1]`, because the two disagree through any
+   * symlink.
+   *
+   * Three clauses, applied to comment-stripped code:
+   *   1. the literal shipped spelling, `pathToFileURL(process.argv[1])`;
+   *   2. `import.meta.url` used as the left operand of `===`/`!==`;
+   *   3. `import.meta.url` CO-OCCURRING in the same file with either
+   *      `process.argv[1]` or `pathToFileURL`.
+   * Clauses 1-2 alone matched only two spellings, which was narrower than the
+   * prose rule they were meant to enforce: an `argv[1]` held behind a variable
+   * with `import.meta.url` on the right (`pathToFileURL(entry).href ===
+   * import.meta.url`) and a non-`===` spelling (`import.meta.url.endsWith(...)`)
+   * both slipped through. Clause 3 closes both without enumerating spellings.
+   *
+   * Deliberately coarse, and the bound is stated rather than chased: clause 3
+   * would also flag a script that legitimately needed `import.meta.url` and
+   * `pathToFileURL` for unrelated reasons (none does — the two files using
+   * `import.meta.url` in code use it only for
+   * `dirname(fileURLToPath(import.meta.url))`), and it cannot see a guard that
+   * reaches the entry path some other way entirely (`const [, entry] =
+   * process.argv`). This scan is a backstop, not the defence: the defence is
+   * STRUCTURAL — the pure half lives in scripts/lib/ so no CLI needs an is-main
+   * check at all. If a script ever genuinely needs both symbols, restructure it
+   * that way rather than weakening this predicate.
+   */
+  const GUARD = {
+    pathToFileURLofArgv1: /pathToFileURL\s*\(\s*process\.argv\s*\[\s*1\s*\]/,
+    importMetaUrlCompared: /import\s*\.\s*meta\s*\.\s*url\s*[!=]==/,
+    importMetaUrl: /import\s*\.\s*meta\s*\.\s*url\b/,
+    argv1: /process\s*\.\s*argv\s*\[\s*1\s*\]/,
+    pathToFileURL: /pathToFileURL/,
+  };
+
+  /** @param code comment-stripped source (pass it through `codeOnly` first). */
+  const hasSymlinkUnsafeMainGuard = (code) =>
+    GUARD.pathToFileURLofArgv1.test(code) ||
+    GUARD.importMetaUrlCompared.test(code) ||
+    (GUARD.importMetaUrl.test(code) &&
+      (GUARD.argv1.test(code) || GUARD.pathToFileURL.test(code)));
+
   const mjsFiles = [];
   const collect = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -328,23 +438,70 @@ describe('scripts/ carry no symlink-unsafe main-guard', () => {
   // script rather than in this one.
   //
   // The rule: no script anywhere under scripts/ may gate its behaviour on
-  // comparing `import.meta.url` with a `pathToFileURL(argv[1])` href, because
-  // the two disagree through any symlink. If a future script genuinely needs an
-  // is-main check, compare `realpathSync` of both sides — or better, follow the
-  // split used here and by PR #11 and put the pure half in scripts/lib/ so no
-  // guard is needed at all.
+  // comparing `import.meta.url` with anything derived from `process.argv[1]`,
+  // because the two disagree through any symlink. `hasSymlinkUnsafeMainGuard`
+  // above is that rule; the two literal patterns are kept as separate assertions
+  // only because they produce a sharper failure message. If a future script
+  // genuinely needs an is-main check, compare `realpathSync` of both sides — or
+  // better, follow the split used here and by PR #11 and put the pure half in
+  // scripts/lib/ so no guard is needed at all.
   it.each(mjsFiles.map((f) => [relative(REPO, f), f]))(
     '%s does not gate on pathToFileURL(process.argv[1])',
     (_label, file) => {
       const code = codeOnly(readFileSync(file, 'utf8'));
 
-      expect(code).not.toMatch(/pathToFileURL\s*\(\s*process\.argv\s*\[\s*1\s*\]/);
-      expect(code).not.toMatch(/import\s*\.\s*meta\s*\.\s*url\s*[!=]==/);
+      expect(code).not.toMatch(GUARD.pathToFileURLofArgv1);
+      expect(code).not.toMatch(GUARD.importMetaUrlCompared);
+      expect(hasSymlinkUnsafeMainGuard(code)).toBe(false);
     },
   );
 
   // CHARACTERIZATION — the scan is only meaningful if it actually found files.
   it('scanned at least the three known scripts', () => {
     expect(mjsFiles.length).toBeGreaterThanOrEqual(3);
+  });
+
+  // SELF-TEST of the scan predicate, not of the generator. Under this file's
+  // two-label taxonomy these rows are CHARACTERIZATION — they never spawn the
+  // script, so they pass against a80514c and against the fix alike — but they are
+  // measured all the same, against the predicate rather than against the
+  // implementation: delete clause 3 of `hasSymlinkUnsafeMainGuard` and exactly the
+  // two rows marked "needs clause 3" go red. That is what stops the enforcement
+  // above from silently drifting narrower than the prose rule it claims to
+  // enforce, which is what happened before this table existed.
+  describe('the scan itself flags every measured spelling of the guard', () => {
+    const FLAGGED = {
+      'the literal shipped form':
+        'if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();',
+      'operands reversed, argv[1] literal':
+        'if (pathToFileURL(process.argv[1]).href === import.meta.url) main();',
+      'negated (early-return style)':
+        'if (import.meta.url !== pathToFileURL(process.argv[1]).href) return;',
+      'whitespace inside the index':
+        'if (import.meta.url === pathToFileURL(process . argv [ 1 ]).href) main();',
+      // needs clause 3 — neither literal pattern fires on these two.
+      'argv[1] behind a variable, import.meta.url on the right':
+        'const entry = process.argv[1];\nif (pathToFileURL(entry).href === import.meta.url) main();',
+      'a non-=== spelling': 'if (import.meta.url.endsWith(process.argv[1])) main();',
+    };
+
+    const NOT_FLAGGED = {
+      '__dirname via fileURLToPath': 'const __dirname = dirname(fileURLToPath(import.meta.url));',
+      'import.meta.resolve': "const p = import.meta.resolve('./lib/tokens.mjs');",
+      'the idiom inside a block comment':
+        '/* import.meta.url === pathToFileURL(process.argv[1]).href */\nexport const x = 1;',
+      'the idiom inside a line comment':
+        '// import.meta.url === pathToFileURL(process.argv[1]).href\nexport const x = 1;',
+      'process.argv[1] with no import.meta.url anywhere':
+        'const entry = process.argv[1];\nconsole.log(entry);',
+    };
+
+    it.each(Object.entries(FLAGGED))('flags %s', (_label, src) => {
+      expect(hasSymlinkUnsafeMainGuard(codeOnly(src))).toBe(true);
+    });
+
+    it.each(Object.entries(NOT_FLAGGED))('does not flag %s', (_label, src) => {
+      expect(hasSymlinkUnsafeMainGuard(codeOnly(src))).toBe(false);
+    });
   });
 });
