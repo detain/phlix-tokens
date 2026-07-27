@@ -55,4 +55,17 @@ jobs:
       # build — fail if a stale dist was committed.
       - name: Verify committed dist is up to date
         run: git diff --exit-code -- dist
-      - run: npm run test:run
+      # `--coverage` is what makes coverage/lcov.info exist at all — plain
+      # `test:run` writes no report despite vite.config.ts carrying a full
+      # `coverage` block, so the upload below would have nothing to send.
+      # It does not change which tests run (3 files / 93 tests either way).
+      - run: npm run test:run -- --coverage
+
+      - name: Upload coverage to Codacy
+        uses: codacy/codacy-coverage-reporter-action@v1
+        # Never allowed to fail the build: a missing/expired token or a Codacy
+        # outage must not turn CI red.
+        continue-on-error: true
+        with:
+          api-token: ${{ secrets.CODACY_API_TOKEN }}
+          coverage-reports: ./coverage/lcov.info
