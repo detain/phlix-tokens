@@ -76,7 +76,11 @@ t['--text'];   // '#f3ece1'
 tokens.spacing['--space-4'];   // '1rem'
 tokens.radius['--radius-lg'];  // '14px'
 tokens.density.compact['--control-h']; // '2.125rem'
+tokens.shadow.nocturne['--shadow-2'];  // '0 4px 14px rgba(0, 0, 0, 0.48)'
 ```
+
+`tokens.shadow` is keyed by theme name (`Record<ThemeName, Record<string, string>>`)
+so each theme's `--shadow-*` / `--glow-*` ladder resolves correctly.
 
 The same data is also available as JSON:
 
@@ -97,6 +101,10 @@ deriveAccentVars('#3366ff');
 // { '--accent': '#3366ff', '--accent-hover': …, '--accent-contrast': '#fff8ec', … }
 ```
 
+`--accent-contrast` is picked from `ACCENT_INK_DARK` / `ACCENT_INK_LIGHT` (also
+exported), the single source of truth shared with `--accent-contrast` in
+`src/css/colors.css`.
+
 ## Regenerating tokens
 
 The JS token objects are generated from `src/css/*.css`. After editing the CSS,
@@ -107,7 +115,8 @@ npm run generate
 ```
 
 The generator is pure and deterministic (no network, no clock/random). CI fails
-if the committed artifact is out of date.
+if the committed artifact is out of date, and `scripts/generate-tokens.mjs`
+throws on an over-nested `var()` fallback rather than mis-resolving it.
 
 ## Scripts
 
