@@ -43,6 +43,46 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`npm run generate` was a silent no-op through any symlink, which made the CI
+  drift gate unable to fail.** `scripts/generate-tokens.mjs` gated `main()` on
+  `import.meta.url === pathToFileURL(process.argv[1]).href`. `pathToFileURL()`
+  does **not** resolve symlinks but `import.meta.url` **does** (it is always the
+  realpath), so reaching the script through a symlinked file, a symlinked
+  directory component or a package `bin` shim made the two hrefs differ, the
+  guard false, and the whole run exit **0 having written zero bytes** — measured:
+  no stdout, no files created. Because `.github/workflows/ci.yml` runs
+  `npm run generate` and then `git diff --exit-code` on the committed artifacts, a
+  generator that writes nothing makes that gate compare the committed artifact
+  **against itself**, so it passed unconditionally. That is a CI gate that could
+  not fail, and it is how the `9ec4298` token corruption stayed green. Three
+  changes, none of which alter a single output byte (`src/tokens.generated.{ts,json}`
+  and `dist/` are unchanged — the committed artifacts remain the correct side):
+  - **The guard is gone rather than repaired.** The pure token model (CSS
+    parsing, `var()` resolution, family partitioning, both renderers) moved to a
+    new side-effect-free `scripts/lib/tokens.mjs`, so importing it from a test can
+    never write a file and the CLI needs no main-guard at all — the same split
+    PR #11 applied to `add-copyright.mjs` → `scripts/lib/copyright.mjs`. A
+    symlink-safe `realpathSync` comparison would also have worked, but leaving no
+    guard leaves nothing to get wrong. `scripts/generate-tokens.d.mts` is replaced
+    by `scripts/lib/tokens.d.mts`.
+  - **`generate` now proves it did work.** `assertNonVacuous()` rejects a model
+    with zero `:root` tokens, zero tokens in any of the three themes, or zero
+    tokens in either density variant, and an empty `src/css` is rejected up front;
+    each artifact is then read back and **byte-compared** after writing. Previously
+    all of these wrote structurally valid but all-empty artifacts and exited 0.
+  - **CI proves the drift gate can fail.** A new `Prove the up-to-date gate is not
+    vacuous` step perturbs both artifacts and requires `generate` to restore them
+    byte-for-byte. Measured against the pre-fix generator: the old gate returns 0
+    (no teeth) where the new probe returns 1.
+  Regression coverage is `test/generate-tokens.test.mjs`, which spawns the script
+  as a real child process against throwaway trees, including through both a
+  symlinked file and a symlinked directory. Measured against `a80514c`:
+  **9 failed | 6 passed (15)**; against this fix all 16 pass. Every case carries a
+  `REGRESSION` / `CHARACTERIZATION` label derived from that A/B, reproducible via
+  the two documented env overrides. Its last table also asserts that **no** script
+  under `scripts/` gates on `pathToFileURL(process.argv[1])`, so the idiom cannot
+  come back in a sibling script. Sweep result: `generate-tokens.mjs` was the only
+  file in the repo still carrying it.
 - Repair the five CSS files broken by the copyright-header pass (`9ec4298`).
   That commit inserted a **naked** `* @copyright …` line — with no `/* */`
   delimiters — into the *middle* of `radius.css` (L8), `motion.css` (L17),
@@ -76,8 +116,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   over-nested value can never silently mis-resolve. No current token hits this, so
   generation stays a byte-for-byte no-op on the real CSS (the drift gate is
   unchanged) — the guard is purely defensive. `resolveValue` /
-  `assertVarFallbackDepth` are now importable from the generator (it only runs
-  `main()` as the CLI entry) for unit coverage.
+  `assertVarFallbackDepth` are importable for unit coverage — originally from the
+  generator itself behind a CLI-entry main-guard, and since the symlink fix below
+  from the side-effect-free `scripts/lib/tokens.mjs`.
 - Unify the two accent-contrast ("ink on accent") systems to a single source of
   truth (B2). The runtime accent picker (`deriveAccentVars`) and the static CSS
   `--accent-contrast` in `colors.css` had drifted: JS returned `#1a1205` for a

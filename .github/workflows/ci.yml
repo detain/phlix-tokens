@@ -27,6 +27,27 @@ jobs:
       - run: npm run generate
       - name: Verify generated tokens are up to date
         run: git diff --exit-code -- src/tokens.generated.ts src/tokens.generated.json
+      # The gate above only has teeth if `npm run generate` actually did work.
+      # A generator that silently writes nothing makes it compare the committed
+      # artifact against ITSELF, so it passes unconditionally — a gate that
+      # cannot fail. That is not hypothetical: scripts/generate-tokens.mjs used
+      # to gate main() on `import.meta.url === pathToFileURL(argv[1]).href`,
+      # which is false through any symlink (pathToFileURL does not resolve
+      # symlinks, import.meta.url is the realpath), making the whole run a
+      # zero-output exit-0 no-op. It is how the 9ec4298 token corruption stayed
+      # green. So: perturb both artifacts and require `generate` to restore them
+      # byte-for-byte. A vacuous generator leaves the perturbation in place and
+      # this step fails. Run it locally with the same three commands.
+      - name: Prove the up-to-date gate is not vacuous
+        run: |
+          printf '/* CI VACUITY PROBE */\n' >> src/tokens.generated.ts
+          printf '\n' >> src/tokens.generated.json
+          if git diff --quiet -- src/tokens.generated.ts src/tokens.generated.json; then
+            echo "::error::vacuity probe failed to dirty the generated artifacts"
+            exit 1
+          fi
+          npm run generate
+          git diff --exit-code -- src/tokens.generated.ts src/tokens.generated.json
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
