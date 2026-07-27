@@ -450,11 +450,19 @@ describe('contrast', () => {
 // The generator's `varRe` captures at most ONE level of nested parens inside a
 // var() fallback. A two-level nest (e.g. clamp() containing calc()) would be
 // mis-captured. resolveValue therefore fails closed: `assertVarFallbackDepth`
-// throws on an over-nested fallback so it can never SILENTLY mis-resolve. These
-// unit tests import the helpers directly (the generator only runs main() when
-// executed as the CLI entry, so importing it is side-effect-free).
+// throws on an over-nested fallback so it can never SILENTLY mis-resolve.
+//
+// These unit tests import the helpers from scripts/lib/tokens.mjs, which reads
+// no files, writes no files and lists no directories, so importing it can never
+// touch the tree. They used to import them from scripts/generate-tokens.mjs,
+// which could only be safe because that file fenced its file-writing main()
+// behind an `import.meta.url === pathToFileURL(process.argv[1]).href` guard —
+// and that guard silently evaluated false through a symlink, turning
+// `npm run generate` into a zero-output exit-0 no-op (see
+// test/generate-tokens.test.mjs). The writing CLI now lives in
+// scripts/generate-tokens.mjs with no guard at all and is not imported here.
 // ---------------------------------------------------------------------------
-import { resolveValue, assertVarFallbackDepth } from '../scripts/generate-tokens.mjs';
+import { resolveValue, assertVarFallbackDepth } from '../scripts/lib/tokens.mjs';
 
 describe('resolveValue nested-paren handling (B4)', () => {
   it('resolves a one-level nested fallback (supported by varRe)', () => {
