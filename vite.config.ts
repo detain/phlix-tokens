@@ -26,6 +26,10 @@ export default defineConfig({
     environment: 'node',
     coverage: {
       provider: 'v8',
+      // Generate coverage reports even when tests fail — without this, a
+      // single failing test prevents the lcov.info file from being written,
+      // which breaks the Codacy upload step in CI.
+      reportOnFailure: true,
       // `scripts/**/*.mjs` is included, not just `src/**/*.ts`: the build scripts
       // are outside the TypeScript project but they are NOT outside the test
       // suite. scripts/lib/tokens.mjs and scripts/lib/copyright.mjs are the pure
