@@ -111,7 +111,7 @@ function parseRules(css) {
       if (!prop.startsWith('--')) continue; // only custom properties
       decls.push({ prop, value });
     }
-    if (decls.length) out.push({ selectors, decls });
+    out.push({ selectors, decls });
   }
   return out;
 }

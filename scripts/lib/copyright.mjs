@@ -113,7 +113,9 @@ function injectTsDocblock(content) {
   if (docEnd === -1) return null;
 
   const block = lines.slice(docStart, docEnd + 1).join('\n');
-  if (block.includes(MARKER)) return null;
+  // Idempotent: if the docblock already carries ANY @copyright line (not just
+  // the maintainer's own MARKER), decline to add a second one.
+  if (block.includes('@copyright')) return null;
 
   // Find the best insertion point: after the last non-empty, non-marker content line
   let insertAfter = docStart + 1;
