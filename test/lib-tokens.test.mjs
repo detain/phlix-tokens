@@ -13,6 +13,8 @@ import {
   renderJson,
   renderTs,
   FILE_FAMILY,
+  resolveValue,
+  assertVarFallbackDepth,
 } from '../scripts/lib/tokens.mjs';
 
 describe('stripComments', () => {
@@ -365,5 +367,63 @@ describe('FILE_FAMILY', () => {
     expect(FILE_FAMILY['typography.css']).toBe('typography');
     expect(FILE_FAMILY['colors.css']).toBeNull();
     expect(FILE_FAMILY['density.css']).toBeNull();
+  });
+});
+
+describe('resolveValue', () => {
+  it('returns the value as-is when no var() is present', () => {
+    const result = resolveValue('#0b0a08', {});
+    expect(result).toBe('#0b0a08');
+  });
+
+  it('returns unresolved var() as a literal when ref not in scope and no fallback', () => {
+    const result = resolveValue('var(--unknown)', {});
+    expect(result).toBe('var(--unknown)');
+  });
+
+  it('handles multiple var() references in one value', () => {
+    const scope = { '--a': 'red', '--b': 'blue' };
+    const result = resolveValue('var(--a) var(--b)', scope);
+    expect(result).toBe('red blue');
+  });
+
+  it('resolves var() with a one-level nested fallback', () => {
+    const result = resolveValue('var(--x, rgba(0,0,0,0.5))', {});
+    expect(result).toBe('rgba(0,0,0,0.5)');
+  });
+});
+
+describe('assertVarFallbackDepth', () => {
+  it('does not throw for valid single-level nested fallbacks', () => {
+    expect(() => assertVarFallbackDepth('var(--x, rgba(0,0,0,0.5))')).not.toThrow();
+    expect(() => assertVarFallbackDepth('var(--x, clamp(1rem, 2vw, 3rem))')).not.toThrow();
+  });
+
+  it('throws for two-level nested fallbacks', () => {
+    expect(() => assertVarFallbackDepth('var(--x, clamp(1rem, calc(2px + 1vw), 3rem))')).toThrow();
+  });
+});
+
+describe('buildTokens with index.css', () => {
+  const minimalCss = [
+    { name: 'colors.css', css: ':root { --bg: #000; } [data-theme=\'nocturne\'] { --bg: #000; } [data-theme=\'daylight\'] { --bg: #fff; } [data-theme=\'midnight\'] { --bg: #111; }' },
+    { name: 'spacing.css', css: ':root { --space-4: 1rem; }' },
+    { name: 'radius.css', css: ':root { --radius-md: 10px; }' },
+    { name: 'motion.css', css: ':root { --dur-fast: 120ms; }' },
+    { name: 'typography.css', css: ':root { --text-xl: clamp(1rem, 2vw, 3rem); }' },
+    { name: 'shadow.css', css: ':root, [data-theme=\'nocturne\'] { --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.48); } [data-theme=\'daylight\'] { --shadow-2: 0 4px 14px rgba(74, 55, 20, 0.12); } [data-theme=\'midnight\'] { --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.70); }' },
+    { name: 'density.css', css: '[data-density=\'comfortable\'] { --control-h: 2.5rem; } [data-density=\'compact\'] { --control-h: 2.125rem; }' },
+  ];
+
+  it('skips index.css and does not add its custom properties to any family', () => {
+    const cssWithIndex = [
+      ...minimalCss,
+      { name: 'index.css', css: ':root { --should-be-ignored: 1rem; }' },
+    ];
+    const { tokens } = buildTokens(cssWithIndex);
+    // The custom property from index.css should NOT appear in spacing
+    expect(tokens.spacing['--should-be-ignored']).toBeUndefined();
+    // It also shouldn't appear in base (because index.css is skipped)
+    expect(tokens.base['--should-be-ignored']).toBeUndefined();
   });
 });
