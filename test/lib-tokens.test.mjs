@@ -370,6 +370,78 @@ describe('FILE_FAMILY', () => {
   });
 });
 
+describe('buildTokens with non-classifying selectors', () => {
+  // Covers line 259: `if (!g) continue;` when classify returns null
+  it('skips selectors that do not classify (not :root, theme, or density)', () => {
+    const css = [
+      { name: 'colors.css', css: ':root { --bg: #000; } [data-theme=\'nocturne\'] { --bg: #000; } [data-theme=\'daylight\'] { --bg: #fff; } [data-theme=\'midnight\'] { --bg: #111; }' },
+      { name: 'spacing.css', css: ':root { --space-4: 1rem; }' },
+      { name: 'radius.css', css: ':root { --radius-md: 10px; }' },
+      { name: 'motion.css', css: ':root { --dur-fast: 120ms; }' },
+      { name: 'typography.css', css: ':root { --text-xl: clamp(1rem, 2vw, 3rem); }' },
+      { name: 'shadow.css', css: ':root, [data-theme=\'nocturne\'] { --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.48); } [data-theme=\'daylight\'] { --shadow-2: 0 4px 14px rgba(74, 55, 20, 0.12); } [data-theme=\'midnight\'] { --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.70); }' },
+      { name: 'density.css', css: '[data-density=\'comfortable\'] { --control-h: 2.5rem; } [data-density=\'compact\'] { --control-h: 2.125rem; }' },
+      // Non-classifying selectors should be skipped
+      { name: 'extra.css', css: '.foo { --should-be-skipped: 1px; } #bar { --also-skipped: 2px; } * { --universal-skipped: 3px; }' },
+    ];
+    const { tokens } = buildTokens(css);
+    // These tokens should NOT appear in any group since their selectors don't classify
+    expect(tokens.base['--should-be-skipped']).toBeUndefined();
+    expect(tokens.base['--also-skipped']).toBeUndefined();
+    expect(tokens.base['--universal-skipped']).toBeUndefined();
+    // But the legitimate tokens should still work
+    expect(tokens.base['--bg']).toBe('#000');
+    expect(tokens.spacing['--space-4']).toBe('1rem');
+  });
+
+  it('handles CSS with mixed classifying and non-classifying selectors', () => {
+    const css = [
+      { name: 'colors.css', css: ':root, .foo { --bg: #000; } [data-theme=\'nocturne\'] { --bg: #000; }' },
+    ];
+    const { tokens } = buildTokens(css);
+    // :root classifies as 'base', .foo doesn't classify
+    expect(tokens.base['--bg']).toBe('#000');
+  });
+});
+
+describe('assertNonVacuous edge cases', () => {
+  // Covers line 383: `o ?? {}` branch when tokens.shadow?.[t] might be undefined
+  // This test verifies assertNonVacuous works when all families have content
+  it('does not throw for valid tokens with all families populated', () => {
+    const valid = {
+      tokens: {
+        base: { '--bg': '#000' },
+        nocturne: { '--bg': '#000' },
+        daylight: { '--bg': '#fff' },
+        midnight: { '--bg': '#111' },
+        spacing: { '--space-1': '0.25rem' },
+        radius: { '--radius-md': '10px' },
+        shadow: { nocturne: { '--shadow-1': '0 1px' }, daylight: { '--shadow-1': '0 1px' }, midnight: { '--shadow-1': '0 1px' } },
+        motion: { '--dur-fast': '120ms' },
+        typography: { '--text-base': '1rem' },
+        density: { comfortable: { '--control-h': '2.5rem' }, compact: { '--control-h': '2rem' } },
+      },
+      themes: {
+        nocturne: { '--bg': '#000' },
+        daylight: { '--bg': '#fff' },
+        midnight: { '--bg': '#111' },
+      },
+    };
+    expect(() => assertNonVacuous(valid)).not.toThrow();
+  });
+});
+
+describe('classify edge cases', () => {
+  it('returns null for selectors that partially match theme/density patterns', () => {
+    // These look similar to theme selectors but aren't valid
+    expect(classify("[data-theme='unknown']")).toBeNull();
+    expect(classify("[data-density='unknown']")).toBeNull();
+    expect(classify("[data-theme=nocturne]")).toBeNull(); // unquoted value
+    expect(classify("[data-density=comfortable]")).toBeNull(); // unquoted value
+    expect(classify('[data-theme="nocturne"]')).toBe('theme:nocturne'); // double quotes work
+  });
+});
+
 describe('resolveValue', () => {
   it('returns the value as-is when no var() is present', () => {
     const result = resolveValue('#0b0a08', {});
