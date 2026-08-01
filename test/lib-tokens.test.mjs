@@ -499,3 +499,64 @@ describe('buildTokens with index.css', () => {
     expect(tokens.base['--should-be-ignored']).toBeUndefined();
   });
 });
+
+// Tests targeting specific uncovered lines in tokens.mjs (252, 293-294, 383)
+describe('buildTokens sort and categoryFor edge cases', () => {
+  // Line 252: the sort in buildTokens runs when input is not alphabetically sorted
+  it('produces correct output when files are passed in reverse alphabetical order', () => {
+    // Files in reverse alphabetical order: typography, spacing, shadow, radius, motion, density, colors
+    const reverseOrdered = [
+      { name: 'typography.css', css: ':root { --text-xl: clamp(1rem, 2vw, 3rem); }' },
+      { name: 'spacing.css', css: ':root { --space-4: 1rem; }' },
+      { name: 'shadow.css', css: ":root, [data-theme='nocturne'] { --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.48); } [data-theme='daylight'] { --shadow-2: 0 4px 14px rgba(74, 55, 20, 0.12); } [data-theme='midnight'] { --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.70); }" },
+      { name: 'radius.css', css: ':root { --radius-md: 10px; }' },
+      { name: 'motion.css', css: ':root { --dur-fast: 120ms; }' },
+      { name: 'density.css', css: "[data-density='comfortable'] { --control-h: 2.5rem; } [data-density='compact'] { --control-h: 2.125rem; }" },
+      { name: 'colors.css', css: ":root { --bg: #000; } [data-theme='nocturne'] { --bg: #000; } [data-theme='daylight'] { --bg: #fff; } [data-theme='midnight'] { --bg: #111; }" },
+    ];
+    const { tokens } = buildTokens(reverseOrdered);
+    // The sort inside buildTokens should produce the same result regardless of input order
+    expect(tokens.spacing['--space-4']).toBe('1rem');
+    expect(tokens.radius['--radius-md']).toBe('10px');
+    expect(tokens.motion['--dur-fast']).toBe('120ms');
+    expect(tokens.typography['--text-xl']).toBe('clamp(1rem, 2vw, 3rem)');
+    expect(tokens.nocturne['--bg']).toBe('#000');
+    expect(tokens.density.comfortable['--control-h']).toBe('2.5rem');
+  });
+
+  // Lines 293-294: categoryFor returns null when file is undefined (should not happen with valid input,
+  // but the defensive check exists for robustness)
+  it('classify returns null for selectors that partially match but are not valid theme/density patterns', () => {
+    // This tests the environment around categoryFor by verifying classify behavior
+    // that leads to baseSource being populated correctly
+    expect(classify("[data-theme='unknown']")).toBeNull();
+    expect(classify("[data-density='unknown']")).toBeNull();
+    expect(classify("[data-theme=nocturne]")).toBeNull(); // unquoted
+  });
+
+  // Line 383: the ?? operator in assertNonVacuous count function
+  // This is tested by passing an object where tokens.shadow is very sparse (missing some themes)
+  // But since assertNonVacuous validates the built model, we test its error-detection instead
+  it('assertNonVacuous detects when a theme shadow ladder is empty', () => {
+    const emptyShadowTheme = {
+      tokens: {
+        base: { '--bg': '#000' },
+        nocturne: { '--bg': '#000' },
+        daylight: { '--bg': '#fff' },
+        midnight: { '--bg': '#111' },
+        spacing: { '--space-1': '0.25rem' },
+        radius: { '--radius-md': '10px' },
+        shadow: { nocturne: { '--shadow-1': '0 1px' }, daylight: {}, midnight: { '--shadow-1': '0 1px' } },
+        motion: { '--dur-fast': '120ms' },
+        typography: { '--text-base': '1rem' },
+        density: { comfortable: { '--control-h': '2.5rem' }, compact: { '--control-h': '2rem' } },
+      },
+      themes: {
+        nocturne: { '--bg': '#000' },
+        daylight: { '--bg': '#fff' },
+        midnight: { '--bg': '#111' },
+      },
+    };
+    expect(() => assertNonVacuous(emptyShadowTheme)).toThrow(/daylight.*shadow ladder resolved to 0 tokens/);
+  });
+});

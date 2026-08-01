@@ -252,7 +252,7 @@
 /* ------------------------------- Tokens --------------------------------- */
 :root {
   /* Font families — web font → metric-matched fallback → generic. */
-  --font-display: 'Fraunces', 'Fraunces Fallback', Georgia, 'Times New Roman', serif;
+  --font-display: 'Fraunces', 'Fraunces Fallback', georgia, 'Times New Roman', serif;
   --font-sans:    'Hanken Grotesk', 'Hanken Grotesk Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono:    'JetBrains Mono', 'JetBrains Mono Fallback', ui-monospace, SFMono-Regular, Menlo, monospace;
 
