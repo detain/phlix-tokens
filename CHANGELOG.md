@@ -6,11 +6,66 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-07
+
+> ### ⚠ Do not diff this release against the `v0.1.1` tag
+>
+> **The `v0.1.1` tag sits on a DISJOINT history.** This repository has two root
+> commits (`53a6273` and `f8230f5`) and `git merge-base v0.1.1 HEAD` returns
+> **nothing** — the tag and `master` share no common ancestor. Consequences:
+>
+> - A GitHub `v0.1.1...v0.2.0` compare view is **fabricated**. So is
+>   `git log v0.1.1..HEAD` (it reports ~28 commits, but that is "every commit
+>   reachable from HEAD", not a release delta).
+> - The only meaningful comparison is the **tree** diff, which ignores history:
+>   `git diff v0.1.1 HEAD -- src` (add `-- dist` for the shipped artifacts).
+>
+> Consumers upgrading from `0.1.1` should read this entry and the tree diff, not
+> the commit range. The `v0.2.0` tag will be cut on `master`, so `v0.2.0` and
+> everything after it will compare normally.
+
 ### Added
 
+- Public accent-ink constants. `ACCENT_INK_DARK` (`#2a1804`) and
+  `ACCENT_INK_LIGHT` (`#fff8ec`) are now **exported from the package root**
+  (`src/accent.ts` → `src/index.ts`), so a consumer can reference the same ink
+  values `deriveAccentVars` and `colors.css` use instead of re-hardcoding a hex.
+  See the B2 entry under *Fixed* for why they exist.
+- `scripts/lib/` — side-effect-free extracted modules. The pure logic of both
+  build scripts now lives in `scripts/lib/tokens.mjs` (489 lines: CSS parsing,
+  `var()` resolution, family partitioning, both renderers) and
+  `scripts/lib/copyright.mjs` (277 lines), with types in
+  `scripts/lib/tokens.d.mts` (which replaces `scripts/generate-tokens.d.mts`).
+  `scripts/generate-tokens.mjs`, `scripts/build-css.mjs` and the new
+  `scripts/add-copyright.mjs` are thin CLI shells over them. Importing a lib
+  module reads no files, writes no files and lists no directories, so a unit
+  test can never touch the tree — which is what let the main-guard be **deleted**
+  rather than repaired (see *Fixed*). Build output is unaffected; this is an
+  internal reorganisation of the generator only.
+- Substantially expanded test suite. `test/` grows from **1 file / 262 lines**
+  at `v0.1.1` to **6 files / 2,382 lines**, running **156 tests**:
+  `tokens.test.ts` (588), `lib-tokens.test.mjs` (562), `add-copyright.test.mjs`
+  (535), `generate-tokens.test.mjs` (507), `lib-copyright.test.mjs` (93) and
+  `build-css.test.mjs` (97). The three `*-tokens`/`build-css`/`add-copyright`
+  CLI suites spawn the real scripts as **child processes** against throwaway
+  trees rather than importing them, so they exercise the shipped entry points.
+  Measured coverage at this release: **276/360 statements (76.66%)**, **152/185
+  branches (82.16%)**, **230/306 lines (75.16%)**. Every non-CLI file is at
+  **100% lines** (`scripts/lib/tokens.mjs` 132/132, `scripts/lib/copyright.mjs`
+  60/60, `src/accent.ts` 21/21, `src/themes.ts` 17/17); the whole shortfall is
+  the three CLI entry points at 0% (`add-copyright.mjs` 0/38,
+  `generate-tokens.mjs` 0/21, `build-css.mjs` 0/17), which v8 cannot attribute
+  because they only ever run in a subprocess. No coverage threshold is
+  configured, so none of this gates.
+- CI now produces a coverage report and uploads it to Codacy, and
+  `vite.config.ts` emits the report **even when tests fail** (previously a red
+  suite produced no report at all, so the one run you most wanted to inspect was
+  the one with no data).
 - Theme parity CI guard (PARITY). A new `theme parity` test suite asserts that
   all three theme maps (`tokens.nocturne` / `tokens.daylight` / `tokens.midnight`)
-  declare the **same key set** (currently 64 keys each, no per-theme-only keys).
+  declare the **same key set** (currently 64 keys each, no per-theme-only keys
+  — re-counted from `src/tokens.generated.json` at release: nocturne 64,
+  daylight 64, midnight 64, and the three sorted key lists are identical).
   Enforced by the existing `test:run` CI step — no workflow change. Hardens
   against future B1-class drift where a token is added to one theme but not the
   others. An explicit (currently empty) allow-list is provided for any future
@@ -20,10 +75,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `luminance` and asserts AA (≥ 4.5:1) for each theme on the key pairs:
   `--text` on `--bg` and on `--surface`, `--text-on-accent` on `--accent` (the
   B2-unified ink, provably readable on amber), and `--text-muted` on `--surface`.
-  All current values clear full AA with margin (lowest measured = daylight
-  `--text-muted` on `--surface` at 6.28:1), so no large-text 3:1 relaxation is
-  used. A deliberately low-contrast pair would trip the guard. Test-only; no
-  generator/CSS/dist change.
+  All current values clear full AA with margin, so no large-text 3:1 relaxation
+  is used. Full table, **recomputed from `resolveTheme()` at release
+  (2026-08-07)** rather than carried over:
+
+  | theme    | text/bg | text/surface | on-accent/accent | muted/surface |
+  | -------- | ------- | ------------ | ---------------- | ------------- |
+  | nocturne | 16.87   | 15.78        | 8.36             | 8.21          |
+  | daylight | 14.18   | 15.68        | 8.36             | **6.28**      |
+  | midnight | 16.93   | 16.11        | 8.36             | 7.51          |
+
+  Lowest of all twelve pairs = daylight `--text-muted` on `--surface` at
+  **6.28:1** — confirmed. A deliberately low-contrast pair would trip the
+  guard. Test-only; no generator/CSS/dist change.
 
 ### Changed
 
@@ -35,14 +99,73 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Native / Roku) now gets the correct ladder for the active theme instead of
   always the dark Nocturne ladder. **Consumers reading `tokens.shadow['--shadow-2']`
   must move to `tokens.shadow.nocturne['--shadow-2']`** (or the active theme).
-  Cross-repo grep at authoring time (2026-06-28) found **no** `tokens.shadow`
-  usage in phlix-ui / phlix-mobile-client / phlix-roku-client (nor the
-  windows/tizen/console clients), so this break is latent in practice; any
-  consumer updates are tracked as separate PRs. The `resolveTheme(name)` path is
-  unaffected (it already returns per-theme resolved `--shadow-*` values).
+  **Impact re-measured at release (2026-08-07)**, not carried over from the
+  2026-06-28 authoring-time grep: literal `tokens.shadow` was searched across
+  **all 14 non-token repos** under `/home/sites/phlix/` — `phlix-ui`,
+  `phlix-hub`, `phlix-server`, `phlix-shared`, `phlix-contracts`, `phlix-docs`,
+  `phlix-syncplay`, `phlix-plugins`, `phlix-website`, and the five clients
+  (`mobile`, `roku`, `windows`, `tizen`, `console`) — excluding
+  `node_modules/`, `vendor/`, `dist/`, `coverage/` and `.git/`. **Zero hits**
+  in thirteen of them. The four hits in `phlix-website` are
+  `design_tokens.shadow`, a brand-kit JSON path with no relation to this
+  package. A second sweep for member access (`shadow[…]` / `.shadow`,
+  discounting `box-shadow` / `--shadow-*` / `text-shadow` / `drop-shadow`)
+  across all five client `src/` trees also returned zero. Finally, `phlix-ui`
+  is the **only** repo in the estate that depends on this package at all
+  (`"@phlix/tokens": "github:detain/phlix-tokens#v0.1.1"`), and it does not use
+  `tokens.shadow`. So the break is real in the type signature but has no current
+  consumer; a phlix-ui repin to `#v0.2.0` needs no code change on that account.
+  The `resolveTheme(name)` path is unaffected (it already returns per-theme
+  resolved `--shadow-*` values).
 
 ### Fixed
 
+- **Restore `Georgia` in `--font-display`, which a lint auto-fix had silently
+  lower-cased and shipped.** Between `0.1.1` and this release the token value
+  drifted from `'Fraunces', 'Fraunces Fallback', Georgia, 'Times New Roman',
+  serif` to `… georgia, …`. Reconstructed:
+  - `7a8cb32` (*"fix: codacy issues and findings"*) made the edit. It was the
+    **only** `src/` change in that commit — the other seven files were
+    `.caliber/` and `.claude/` metadata — so it was never reviewed as a token
+    change. Cause: a `value-keyword-case` style rule (Codacy runs stylelint
+    server-side; **this repo has no stylelint of its own**, `npm run lint` is
+    `eslint .` and cannot see CSS) reports an unquoted family name as a value
+    keyword that "should be lowercase". stylelint's font-family exemption does
+    not apply inside a *custom* property, because the rule has no way to know
+    `--font-display` holds a font stack. It hit only `Georgia` and left `Menlo`
+    and `SFMono-Regular` alone, so it was applied by hand from the report rather
+    than by a wholesale `--fix`.
+  - `2f2b703`, whose subject is `提升测试覆盖率` (*"improve test coverage"*),
+    is what propagated it into `src/tokens.generated.{ts,json}`,
+    `dist/tokens.json`, `dist/phlix-tokens.js`, `dist/phlix-tokens.umd.cjs`,
+    `dist/style.css` and `dist/css/typography.css` — a published token-value
+    change carried by a commit that announces itself as test-only.
+  - **Severity: cosmetic in CSS, wrong in the JSON.** Family-name matching is
+    ASCII case-insensitive, measured in Chrome rather than assumed: an installed
+    multi-word family rendered at an identical 1382.671875px as
+    `'DejaVu Serif'`, `'dejavu serif'`, `'DEJAVU SERIF'` and unquoted
+    `dejavu serif`, while a bogus family rendered at 1138.390625px — so the
+    check could distinguish a failed lookup and did not. (Georgia itself is not
+    installed on the test host, hence the substitute family.) But
+    `src/tokens.generated.json` exists precisely for the non-CSS clients
+    (React Native / Roku), which match a font name **exactly**, and an
+    unreviewed change to a published token value is the defect whether or not
+    this particular one rendered.
+  - **Prevention.** There is no local stylelint config to tighten, so the guard
+    is a test: a new `font family tokens` suite in `test/tokens.test.ts` pins
+    all three `--font-*` stacks verbatim in `src/css/typography.css`, in the
+    exported `tokens`/`resolveTheme()` values, and in the committed
+    `src/tokens.generated.json`, and additionally rejects a lower-cased spelling
+    of any of the nine cased family names appearing **anywhere** in the JSON
+    artifact. It runs under the existing `npm run test:run` CI step. Proven
+    non-vacuous by re-applying the exact mutation: lower-casing `Georgia` in
+    `typography.css` alone reds 1 of the 3 cases, and regenerating so the
+    artifacts follow reds all 3. The CSS-source assertion strips comments before
+    matching (the explanatory comment now above the declarations names every
+    family, so an unstripped scan would match its own documentation) and asserts
+    the strip actually ran. `src/css/typography.css` also carries a
+    `stylelint-disable-next-line value-keyword-case` on each of the three
+    declarations so the hosted analyser stops re-raising it.
 - **`npm run generate` was a silent no-op through any symlink, which made the CI
   drift gate unable to fail.** `scripts/generate-tokens.mjs` gated `main()` on
   `import.meta.url === pathToFileURL(process.argv[1]).href`. `pathToFileURL()`
@@ -97,10 +220,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `scripts/lib/copyright.mjs` — the pure modules the suite imports directly —
   reported **no coverage at all**; the report covered only `src/accent.ts` and
   `src/themes.ts` and read `100% (49/49)`. `include` is now
-  `['src/**/*.ts', 'scripts/**/*.mjs']` (measured: `134/361` statements, with the
-  three CLI entry points at 0% because they are only ever exercised as child
-  processes). Report-only — no coverage threshold is configured and CI runs plain
-  `npm run test:run` with no `--coverage`, so no gate changes.
+  `['src/**/*.ts', 'scripts/**/*.mjs']` (measured at the time of that change:
+  `134/361` statements, with the three CLI entry points at 0% because they are
+  only ever exercised as child processes; the later test work in this release
+  took it to `276/360` — see *Added*). Report-only — no coverage threshold is
+  configured and CI runs plain `npm run test:run` with no `--coverage`, so no
+  gate changes.
+- `injectTsDocblock` is now genuinely idempotent, and `parseRules` no longer
+  drops declaration-less rules. `injectTsDocblock` tested a docblock for the
+  maintainer's own `MARKER` string, so a file already carrying a *differently
+  worded* `@copyright` line got a **second** one appended on the next run; it now
+  tests for any `@copyright`. `parseRules` guarded its output with
+  `if (decls.length)`, silently discarding any rule that declares no custom
+  properties — which lost comma-separated selector groups and empty blocks from
+  the parsed model; the rule is now always emitted. Both live in `scripts/lib/`
+  and are covered by `test/lib-copyright.test.mjs` / `test/lib-tokens.test.mjs`.
+  No token value or `dist/` byte changes.
 - Repair the five CSS files broken by the copyright-header pass (`9ec4298`).
   That commit inserted a **naked** `* @copyright …` line — with no `/* */`
   delimiters — into the *middle* of `radius.css` (L8), `motion.css` (L17),

@@ -223,6 +223,96 @@ describe('generated json round-trips', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Font-family token case guard.
+//
+// INCIDENT: 7a8cb32 ("fix: codacy issues and findings") lower-cased `Georgia`
+// to `georgia` in src/css/typography.css. It was the ONLY src/ change in that
+// commit; the rest was .caliber/ + .claude/ files. The value then rode into
+// src/tokens.generated.{ts,json} and all of dist/ under 2f2b703, whose subject
+// is "提升测试覆盖率" ("improve test coverage") — so the token change was
+// invisible in the log. Nothing in the CHANGELOG mentioned it.
+//
+// WHY IT HAPPENED: a `value-keyword-case` style rule (Codacy runs stylelint
+// server-side; there is no stylelint in this repo's own toolchain, so
+// `npm run lint` — eslint — cannot see CSS at all) reports an unquoted family
+// name as a value keyword that "should be lowercase". Inside a CUSTOM property
+// the rule has no way to know `--font-display` holds a font stack, so its
+// font-family exemption does not apply. Note it hit only `Georgia` and left
+// `Menlo` / `SFMono-Regular` alone, so it was applied by hand, not wholesale.
+//
+// WHY IT MATTERS: harmless in CSS — family-name matching is ASCII
+// case-insensitive (measured in Chrome: 'DejaVu Serif', 'dejavu serif',
+// 'DEJAVU SERIF' and unquoted `dejavu serif` all render identically, while a
+// bogus family renders at a different width, so that check was not vacuous).
+// But this file is the source for src/tokens.generated.json, which the non-CSS
+// clients (React Native / Roku) read, and a font name matched exactly there
+// would miss. An unreviewed value change in a published token is the defect
+// regardless of whether this particular one rendered.
+//
+// This suite pins the exact strings so `--fix`-style casing damage reds CI.
+// Assert against the DISK artifact, not just the imported object, so a stale
+// generated file cannot hide the drift.
+// ---------------------------------------------------------------------------
+describe('font family tokens', () => {
+  const EXPECTED: Record<string, string> = {
+    '--font-display': "'Fraunces', 'Fraunces Fallback', Georgia, 'Times New Roman', serif",
+    '--font-sans':
+      "'Hanken Grotesk', 'Hanken Grotesk Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif",
+    '--font-mono':
+      "'JetBrains Mono', 'JetBrains Mono Fallback', ui-monospace, SFMono-Regular, Menlo, monospace",
+  };
+
+  /** Family names that MUST keep their capitals. Lower-casing any is the bug. */
+  const CASED_FAMILIES = ['Fraunces', 'Fraunces Fallback', 'Georgia', 'Times New Roman',
+    'Hanken Grotesk', 'Segoe UI', 'JetBrains Mono', 'SFMono-Regular', 'Menlo'];
+
+  it('typography.css declares the family stacks verbatim, capitals intact', () => {
+    const css = readFileSync(join(__dirname, '..', 'src', 'css', 'typography.css'), 'utf8');
+    // Strip comments first: the explanatory block above these declarations
+    // names every family, so an uncommented scan would match its own docs.
+    const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
+    // Non-vacuity: a phrase that exists ONLY in that comment must be gone, so
+    // we know the strip ran and the matches below come from real declarations.
+    expect(code, 'comment strip did not run').not.toContain('value-keyword-case');
+    const norm = code.replace(/[ \t]+/g, ' ');
+    for (const [key, value] of Object.entries(EXPECTED)) {
+      expect(norm, `${key} declaration in typography.css`).toContain(`${key}: ${value};`);
+    }
+  });
+
+  it('the exported tokens carry the exact family strings', () => {
+    for (const [key, value] of Object.entries(EXPECTED)) {
+      expect(tokens.typography[key], `tokens.typography[${key}]`).toBe(value);
+      for (const t of THEMES) {
+        expect(resolveTheme(t)[key], `resolveTheme('${t}')[${key}]`).toBe(value);
+      }
+    }
+  });
+
+  it('the committed JSON artifact carries the exact family strings', () => {
+    const jsonPath = join(__dirname, '..', 'src', 'tokens.generated.json');
+    const raw = readFileSync(jsonPath, 'utf8');
+    const data = JSON.parse(raw) as {
+      tokens: { typography: Record<string, string> };
+      themes: Record<string, Record<string, string>>;
+    };
+    for (const [key, value] of Object.entries(EXPECTED)) {
+      expect(data.tokens.typography[key], `json tokens.typography[${key}]`).toBe(value);
+      for (const t of THEMES) {
+        expect(data.themes[t][key], `json themes.${t}[${key}]`).toBe(value);
+      }
+    }
+    // No lower-cased spelling of a cased family may appear ANYWHERE in the
+    // artifact — this is what actually catches a `--fix` sweep.
+    for (const family of CASED_FAMILIES) {
+      expect(raw, `lower-cased "${family}" leaked into tokens.generated.json`)
+        .not.toContain(family.toLowerCase());
+      expect(raw, `"${family}" missing from tokens.generated.json`).toContain(family);
+    }
+  });
+});
+
 describe('deriveAccentVars / accent helpers', () => {
   it('returns exactly the ACCENT_KEYS', () => {
     const vars = deriveAccentVars('#f5a524');
