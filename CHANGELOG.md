@@ -5,6 +5,7 @@ All notable changes to this project are documented here. The format is based on
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- Release @phlix/tokens v0.2.1 — version bump + rebuilt committed artifacts
 
 ## [0.2.0] - 2026-08-07
 
