@@ -55,5 +55,8 @@
     "theme",
     "css-variables"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "overrides": {
+    "source-map-js": "^1.2.2"
+  }
 }
