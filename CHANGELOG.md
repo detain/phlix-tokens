@@ -5,7 +5,58 @@ All notable changes to this project are documented here. The format is based on
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Release @phlix/tokens v0.2.1 — version bump + rebuilt committed artifacts
+
+### Changed
+- README: the provenance paragraph now states the extraction history correctly
+  (the CSS was copied from phlix-ui's `src/tokens/` at 0.1.0; phlix-ui #137
+  inverted the flow and its `src/tokens/` no longer holds those files) and the
+  consumer list is restated by mechanism — direct: phlix-ui + phlix-server;
+  indirect via the phlix-ui bundle: windows + tizen; not yet migrated:
+  mobile (React Native) + Roku.
+- README: new "Naming" section stating the token grammar
+  (`--<family>-<role>[-<variant>]`), the deliberate no-prefix policy, the
+  `--text-*` colors-vs-sizes split (the B1 collision under [0.2.0]), and the
+  `--accent-text` / `--text-on-accent` direction law.
+- Commits landed after the v0.2.1 tag, previously unbooked here: vitest
+  ^5.0.0 + @vitest/coverage-v8 ^5.0.0 (`fa2b3e6`), js-yaml dev-lock
+  4.3.1 → 4.3.2 (`334902d`), the ubuntu-26.04 CI runner pin (`7f493b5`), and
+  the dependency security update (`3fa085b` — adds the `source-map-js`
+  ^1.2.2 override + lockfile refresh). All dev-tooling/CI-only; no token, CSS
+  or committed dist byte moved.
+
+### Fixed
+- Rebuilt the committed `dist/phlix-tokens.{js.map,umd.cjs.map}` to what the
+  lockfile-pinned toolchain emits: the `Verify committed dist is up to date`
+  gate was red on master since `3fa085b` (bumped vite to 8.3.4; the committed
+  maps carried an older rollup's empty `names` array). Reproduced on an
+  unmodified HEAD worktree (attribution proof), double-build idempotent, and
+  value-carrying artifacts (`style.css`, `tokens.json`, bundles) byte-identical
+  — no token or CSS byte moved. (`127474e`)
+
+### Documentation correction
+- The ⚠ "disjoint history" banner under [0.2.0] (kept verbatim, per the
+  history-verbatim law) no longer reflects the repository as measured at
+  today's master. `git merge-base v0.1.1 HEAD` =
+  `7b4c48c7e861f754b7c24e24027ccf92f2a532d2` — v0.1.1's own commit — so
+  `git merge-base --is-ancestor v0.1.1 HEAD` exits 0: **v0.1.1 is an ancestor
+  of master**. The history has a single root (`f8230f5`); the banner's second
+  root `53a6273` is not an object in this repository
+  (`git cat-file -t 53a6273` → fatal), and `git rev-list --count v0.1.1..HEAD`
+  = 33 is a legitimate release delta. A GitHub `v0.1.1...v0.2.0` compare view
+  is therefore **valid**; disregard the banner's "do not diff against the
+  v0.1.1 tag" instruction.
+
+## [0.2.1] - 2026-09-14
+
+### Changed
+- Version bump 0.2.0 → 0.2.1 (`package.json` + lockfile) and a dev-lock
+  js-yaml patch upgrade (4.3.0 → 4.3.1). The release commit's subject said
+  "rebuild committed dist", but `git diff --stat v0.2.0 v0.2.1` moves **zero**
+  `src/` or `dist/` bytes — no token, CSS or artifact value changed, so the
+  server's `ColorsCssParityTest` byte-pin (sha256 `src/css/colors.css` =
+  `495d7b481a6774313e73fd0a143c1a02b12f70a7a66c2295cf3ea37d82beb8a0`,
+  identical v0.2.0 → v0.2.1 → HEAD) needed no rotation and 0.2.0 → 0.2.1 is a
+  rendered-value no-op for every consumer.
 
 ## [0.2.0] - 2026-08-07
 
