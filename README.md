@@ -6,21 +6,33 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-Framework-agnostic **design tokens** for Phlix — the single source of truth for
-theme tokens shared across every client so they never drift:
+Framework-agnostic **design tokens** for Phlix — the single source of truth
+for the web theme tokens. Inside this package the CSS, JS and JSON forms are
+generated from one source and CI-gated so they never drift; across the estate,
+adoption is by mechanism:
 
-- **Web** clients (phlix-ui, windows, tizen) consume the shipped CSS custom
-  properties.
-- **Non-CSS** clients (React Native mobile, Roku) consume the resolved JS/JSON
-  token maps.
+- **Direct consumers:** phlix-ui (imports `@phlix/tokens/style.css` and the
+  JS/JSON maps; pins `github:detain/phlix-tokens#v0.2.1`) and phlix-server
+  (vendors the tag-pinned tarball; its `ColorsCssParityTest` byte-pins
+  `src/css/colors.css`).
+- **Indirect, via the phlix-ui bundle:** the windows and tizen clients — their
+  shipped SPA bundles embed this package's CSS; they do not depend on the
+  package themselves.
+- **Not yet migrated:** mobile (React Native) and Roku. They do **not** depend
+  on `@phlix/tokens` today and keep hand-maintained values; the resolved JS/JSON
+  token maps exist for exactly that future adoption, and their current copies
+  are not drift-protected by this package.
 
 It has **no dependency on Vue, Pinia, or vue-router**, so it is safe to import
-from a React Native bundle.
+from a React Native bundle once that migration lands.
 
-The authoritative web artifact is the CSS in [`src/css/`](./src/css), copied
-byte-for-byte from phlix-ui's `src/tokens/`. The JS token objects in
-`src/tokens.generated.ts` are **generated** from that CSS (var() references
-resolved to concrete values per theme), guaranteeing zero visual drift.
+The authoritative web artifact is the CSS in [`src/css/`](./src/css). These
+files were extracted byte-for-byte from phlix-ui's `src/tokens/` at 0.1.0;
+since phlix-ui #137 the direction is inverted — `phlix-ui/src/tokens/` no
+longer holds the token CSS and instead imports this package's `style.css`.
+The JS token objects in `src/tokens.generated.ts` are **generated** from that
+CSS (var() references resolved to concrete values per theme), guaranteeing
+zero drift between the CSS and JS/JSON forms shipped from here.
 
 ## Install
 
@@ -59,11 +71,13 @@ import '@phlix/tokens/css/colors.css';
 import '@phlix/tokens/css/spacing.css';
 ```
 
-## Usage — React Native / Roku (resolved values)
+## Usage — non-CSS consumers (React Native / Roku, resolved values)
 
-There are no CSS variables in React Native, so read the **flat resolved map** for
-a theme. Every `var(--ref)` is already resolved to a concrete value;
-`clamp()` / `rgba()` strings are preserved as-is.
+Mobile and Roku do not depend on this package yet (see the adoption list above);
+when they migrate, this is the path. There are no CSS variables in React
+Native, so read the **flat resolved map** for a theme. Every `var(--ref)` is
+already resolved to a concrete value; `clamp()` / `rgba()` strings are
+preserved as-is (they are CSS functional notation, not parseable numbers).
 
 ```ts
 import { tokens, resolveTheme } from '@phlix/tokens';
@@ -104,6 +118,35 @@ deriveAccentVars('#3366ff');
 `--accent-contrast` is picked from `ACCENT_INK_DARK` / `ACCENT_INK_LIGHT` (also
 exported), the single source of truth shared with `--accent-contrast` in
 `src/css/colors.css`.
+
+## Naming
+
+The grammar is `--<family>-<role>[-<variant>]`. Families are bare nouns —
+`accent`, `bg`, `surface`, `text`, `border`, `space`, `radius`, `shadow`,
+`ease`, `dur`, `font`, `fw`, `tracking`, `leading`, and `control-*` (density
+geometry). There is deliberately **no `--phlix-` prefix**: the bare names are
+the frozen contract — the server's `ThemeTokenAllowlist` governs which of them
+plugin themes may override, and renaming is a breaking cascade across server,
+ui, and every client. The blessed consumption pattern is the two-argument
+`var(--x, literal)` fallback form phlix-ui uses everywhere — it survives
+partial imports and load-order failure. Re-count the surface area with
+`grep -hoE '^\s*--[a-zA-Z0-9-]+:' src/css/*.css | sort -u | wc -l`
+(128 at last census; the full enumeration is `dist/tokens.json`).
+
+**`--text-*` is two families.** Colors: `--text`, `--text-muted`,
+`--text-subtle`, `--text-faint`, `--text-on-accent` (defined in
+`colors.css`); type sizes: `--text-2xs` … `--text-hero` (defined in
+`typography.css`). The collision once caused a real shipped defect ("B1",
+CHANGELOG [0.2.0]): the generator guessed families by key-prefix and color
+values leaked into `tokens.typography`; it now categorizes by **source file**.
+That is the law for new tokens too: the file you edit declares the family —
+sizes go in `typography.css`, colors in `colors.css` — and a new *color role*
+must not extend the `--text-<word>` pattern; name the component role instead.
+
+The direction pair is easy to invert: `--accent-text` is the accent color used
+**as** foreground; `--text-on-accent` is the foreground painted **on** an
+accent fill. The `--color-*` legacy set is pure aliases of the canonical names,
+kept for un-migrated consumers — never add new tokens there.
 
 ## Regenerating tokens
 
