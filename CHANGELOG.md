@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- README: "Releasing tokens — the cascade" section — the surface list, the
+  ui tag-pin, the server codeload-tarball pin and its `ColorsCssParityTest`
+  sha/transcription/allowlist trio, the name-set-and-**order** law, the
+  `:root`-fold idiom, and the coordinated release order, so the hazard stops
+  living only in downstream repos' docblocks. Quotes constant *names*, never
+  values, so it cannot rot on re-pin (M-TOKENS-15).
 - `docs/token-reference.md` — a generated enumeration of every custom property
   with its resolved value (per-theme and per-density views included), closing
   the "no human-facing token reference" gap. Produced by
@@ -20,6 +26,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   committed dist byte moved.
 
 ### Changed
+- Documentation pass booked for W-min174/176/177 (prose + comment-only; no
+  token, CSS or committed dist byte moved): README Usage-web now discloses the
+  `style.css` global-reset/utility surface (M-TOKENS-12/-32), the inherited
+  roadmap-era comment codes are explained (M-TOKENS-26), the non-CSS section
+  names where the `@font-face` files really live and the RN/Roku
+  self-registration duty (M-TOKENS-27), the weight-alias retirement intent is
+  stated (M-TOKENS-20) and the low-contrast border posture is documented
+  (M-TOKENS-17); the dead codecov badge is gone (M-TOKENS-30); README/CI prose
+  nits (M-TOKENS-39). Internal comment-only touch: `src/accent.ts` keys
+  docblock moved above its const (M-TOKENS-07/-28) — its only dist exposure is
+  `accent.d.ts` doc comments and the `.map` files' embedded sources.
 - README: the new Naming section's three enumeration claims corrected to
   computed truth (M-TOKENS-09 review): the re-count command lost its `^\s*`
   anchor — line-start anchoring is blind to the 12 mid-line declarations

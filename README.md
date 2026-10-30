@@ -1,7 +1,6 @@
 # @phlix/tokens
 
 [![CI](https://github.com/detain/phlix-tokens/actions/workflows/ci.yml/badge.svg)](https://github.com/detain/phlix-tokens/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/detain/phlix-tokens/graph/badge.svg)](https://codecov.io/gh/detain/phlix-tokens)
 [![Version](https://img.shields.io/github/v/tag/detain/phlix-tokens?label=version&sort=semver)](https://github.com/detain/phlix-tokens/tags)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -75,7 +74,7 @@ import { applyTokenAttributes } from '@phlix/tokens';
 
 applyTokenAttributes(document.documentElement, {
   theme: 'nocturne',     // 'nocturne' | 'daylight' | 'midnight'
-  density: 'comfortable',// 'comfortable' | 'compact'
+  density: 'comfortable', // 'comfortable' | 'compact'
   reducedMotion: false,
   accent: null,          // or a hex string to override the default amber
 });
@@ -237,6 +236,59 @@ editing CSS, regenerate **both** (`npm run generate && npm run generate:referenc
 The committed doc is pinned against a rebuild by
 `test/token-reference.test.mjs`, so a stale reference fails the suite.
 
+## Releasing tokens — the cascade
+
+`npm run generate && npm run build` ends this repo's job, but both consumers pin
+bytes, so a CSS edit is only half the change. The surfaces, in custody order:
+
+- `src/css/*.css` — the hand-edited source. Copied **verbatim** (comments
+  included) into `dist/css/*.css` and inlined into `dist/style.css` by
+  `scripts/build-css.mjs`.
+- `src/tokens.generated.{ts,js,json}` — generated from `src/css` by
+  `npm run generate`; CI fails if committed copies are stale.
+- `dist/` — the committed build output (`style.css`, `css/*`, `tokens.json`,
+  the bundles + `.d.ts`).
+- `docs/token-reference.md` — generated from the same resolved map by
+  `npm run generate:reference`; pinned by its own test.
+
+Downstream pins (as measured at the v0.2.1 era):
+
+- **phlix-ui** depends on `github:detain/phlix-tokens#v0.2.1` — a **tag**, so
+  nothing reaches ui until this repo tags — and its build embeds
+  `dist/style.css`.
+- **phlix-server** vendors the tag's **codeload tarball over an immutable
+  commit SHA** as a dev-only, commit-pinned composer package, and
+  `tests/Unit/Theming/ColorsCssParityTest.php` (1) sha256-pins the vendored
+  `src/css/colors.css` against its `COLORS_CSS_SHA256` constant, (2) parses it
+  and diffs name-for-name **and value-for-value** against the `BuiltInThemes`
+  transcription, (3) diffs the plugin-settable surface against
+  `ThemeTokenAllowlist` — all by **name set and declaration order**.
+
+The laws that make a "harmless" CSS reshuffle breaking:
+
+1. **Re-sorting or interleaving declarations in `colors.css` is a breaking
+   change** — the server guard diffs order, not just content. Same value,
+   new line, red CI downstream.
+2. The **`:root`-fold idiom**: the nocturne theme doubles as the default via
+   the folded selector `:root, [data-theme='nocturne']` (`colors.css`,
+   `shadow.css`; `density.css` does the same for `comfortable`), which
+   populates the base group and the theme group from one block — the server
+   parse depends on it (see the RELAX-DELIBERATELY note in
+   `scripts/lib/tokens.mjs`). Moving to `:root`-only defaults requires an
+   intentional assertion relaxation on both sides, never a silent edit.
+3. Adding or removing a token name is the same class of cascade as a re-sort
+   (frozen surface); so is any change to `src/css` **comment bytes** — they
+   ride into the vendored files verbatim.
+
+Coordinated release order: land here → push → tag → server re-pin (composer
+pin + `ColorsCssParityTest` sha/transcription/allowlist refresh) → ui tag-pin
+bump. One caveat from history: the server guard's docblock still narrates its
+chain-of-custody from the older tag commit (`colors.css @ 5500d70b, tag v0.2.0`)
+while its lock now fetches the `v0.2.1` tag archive — pin *provenance* drifts
+even when bytes don't. Treat the sha constant's **name** as the living
+contract, never README lore: this section quotes no sha value, so it cannot rot
+on the next re-pin.
+
 ## Scripts
 
 | script           | purpose                                                     |
@@ -249,9 +301,6 @@ The committed doc is pinned against a rebuild by
 | `npm run test:run` | vitest run (once)                                         |
 | `npm run lint`     | eslint                                                    |
 | `npm run copyright`| stamp the `@copyright` header on `src/**`/`test/**` (idempotent) |
-
-`npm run copyright` (`node scripts/add-copyright.mjs`) stamps the `@copyright` header on `src/**` and
-`test/**` sources.
 
 ## License
 

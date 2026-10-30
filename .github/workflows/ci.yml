@@ -37,7 +37,7 @@ jobs:
       # zero-output exit-0 no-op. It is how the 9ec4298 token corruption stayed
       # green. So: perturb both artifacts and require `generate` to restore them
       # byte-for-byte. A vacuous generator leaves the perturbation in place and
-      # this step fails. Run it locally with the same three commands.
+      # this step fails. Run it locally with the same sequence of commands.
       - name: Prove the up-to-date gate is not vacuous
         run: |
           printf '/* CI VACUITY PROBE */\n' >> src/tokens.generated.ts
