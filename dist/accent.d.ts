@@ -20,7 +20,7 @@ export declare function lighten(rgb: RGB, amount: number): RGB;
 /** Mix `amount` (0–1) of black into the color. */
 export declare function darken(rgb: RGB, amount: number): RGB;
 export declare const rgba: ({ r, g, b }: RGB, a: number) => string;
-/** Relative luminance (WCAG) for picking readable ink on a fill. */
+/** Relative luminance (WCAG 2.1) for picking readable ink on a fill. */
 export declare function luminance({ r, g, b }: RGB): number;
 /**
  * Single source of truth for the accent "ink" (the readable text/icon color laid

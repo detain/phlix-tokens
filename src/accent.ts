@@ -40,7 +40,7 @@ export function darken(rgb: RGB, amount: number): RGB {
 }
 export const rgba = ({ r, g, b }: RGB, a: number): string => `rgba(${clamp(r)}, ${clamp(g)}, ${clamp(b)}, ${a})`;
 
-/** Relative luminance (WCAG) for picking readable ink on a fill. */
+/** Relative luminance (WCAG 2.1) for picking readable ink on a fill. */
 export function luminance({ r, g, b }: RGB): number {
   const ch = [r, g, b].map((v) => {
     const s = v / 255;

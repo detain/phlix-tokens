@@ -41,7 +41,7 @@
 //   REGRESSION (this fix)    — PASSES against origin/master, FAILS against
 //                           7cb90da. A defect INTRODUCED by 7cb90da's
 //                           first-cut fix itself — master never attempted the
-//                           behaviour being guarded, so there was nothing
+//                           behavior being guarded, so there was nothing
 //                           there to get wrong — and fixed in this round: a
 //                           degenerate `/*/` first line mis-handled, and the
 //                           duplicate guard narrowed to the opening block
@@ -68,7 +68,7 @@
 //                           a leading BOM at all, so the BOM half of this
 //                           category has zero production exposure today.
 //   CHARACTERIZATION         — PASSES against BOTH origin/master and 7cb90da.
-//                           Documents intended behaviour without
+//                           Documents intended behavior without
 //                           discriminating between any implementation. Kept
 //                           on purpose, but do not mistake it for a guard.
 //
@@ -387,7 +387,7 @@ describe('injectCssComment (CSS copyright injection)', () => {
     const totalNewlines = (result.match(/\n/g) || []).length;
     // Input: 3 bare LF + 1 CRLF. Output: 3 bare LF + 2 CRLF — the injected
     // line takes CRLF too, even though the very next line (the closer `*/`)
-    // stays LF. Pins the exact behaviour crFor()'s corrected comment
+    // stays LF. Pins the exact behavior crFor()'s corrected comment
     // describes; not itself a defect fix.
     expect(crlfCount).toBe(2);
     expect(totalNewlines - crlfCount).toBe(3);

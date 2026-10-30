@@ -82,6 +82,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   value-carrying artifacts (`style.css`, `tokens.json`, bundles) byte-identical
   — no token or CSS byte moved. (`127474e`)
 
+- British/American spelling mix in pure-repo comments normalized to US
+  (M-TOKENS-37): `behaviour` → `behavior` and `recognised` → `recognized` in
+  `scripts/lib/copyright.mjs` and the two `test/add-copyright`/
+  `test/generate-tokens` header comments — comment lines only, no string
+  literal or stamped-template text touched; historical CHANGELOG prose stays
+  verbatim per the estate law.
+- A11y citations carry the standard version (M-TOKENS-38): the contrast guard
+  header and its case name in `test/tokens.test.ts` and the luminance docblock
+  in `src/accent.ts` now cite **WCAG 2.1** (formula identical across 2.0–2.2,
+  noted inline). Comment exposure to dist measured: `dist/accent.d.ts` + the
+  two `.map` files move (embedded sources); every value-carrying artifact
+  re-verified byte-identical. Version cites inside `src/css/colors.css` are
+  comment bytes on the vendored surface — deferred to the coordinated CSS
+  comment bump (fixlog roster), not edited here.
+
 ### Documentation correction
 - The [0.2.0] entry's prevention paragraph (kept verbatim, per the
   history-verbatim law) describes the stylelint guard in

@@ -38,7 +38,7 @@
  * BY HAND. If you add a module under scripts/lib/, give it the header and add it
  * to the list above; if you add, remove or move any header under scripts/, fix
  * the list in the same commit. Do NOT extend walk() to scripts/ to "fix" the
- * asymmetry — that changes CLI behaviour (it would start rewriting
+ * asymmetry — that changes CLI behavior (it would start rewriting
  * scripts/*.mjs). Decided in PR #11, re-affirmed in PR #12; not a deferred task
  * tracked elsewhere.
  *
@@ -50,7 +50,7 @@ const COPYRIGHT = ' * @copyright 2026 Joe Huss <detain@interserver.net>';
 // The substring that marks a file as already carrying the header.
 const MARKER = 'detain@interserver.net';
 
-// A leading UTF-8 BOM (U+FEFF). Only recognised as a BOM by CSS parsers
+// A leading UTF-8 BOM (U+FEFF). Only recognized as a BOM by CSS parsers
 // (postcss included) when it is the very first three bytes of the file —
 // which is what prependCssComment() below relies on to keep it there.
 // Harmless ECMAScript WhiteSpace to `tsc`/node wherever it lands instead, so
@@ -82,7 +82,7 @@ function isShebang(line) {
 // LF + 2 CRLF — the injected line is CRLF even though the line that follows
 // it (the closing ` */`) stays LF. That is intentional-by-omission
 // (simplicity over a rare edge case), not a bug to silently "improve" here —
-// see the mixed-EOL test below, which pins this exact behaviour.
+// see the mixed-EOL test below, which pins this exact behavior.
 function crFor(content) {
   return content.includes('\r\n') ? '\r' : '';
 }

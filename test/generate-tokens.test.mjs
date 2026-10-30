@@ -38,7 +38,7 @@
 //
 //   REGRESSION      — FAILS against a80514c, PASSES against the fix. A defect
 //                     that actually shipped.
-//   CHARACTERIZATION — PASSES against BOTH. Documents intended behaviour without
+//   CHARACTERIZATION — PASSES against BOTH. Documents intended behavior without
 //                     discriminating between the implementations. Kept on
 //                     purpose, but do not mistake it for a guard.
 //
@@ -437,7 +437,7 @@ describe('scripts/ carry no symlink-unsafe main-guard', () => {
   // the only case that would catch the idiom being REINTRODUCED in some other
   // script rather than in this one.
   //
-  // The rule: no script anywhere under scripts/ may gate its behaviour on
+  // The rule: no script anywhere under scripts/ may gate its behavior on
   // comparing `import.meta.url` with anything derived from `process.argv[1]`,
   // because the two disagree through any symlink. `hasSymlinkUnsafeMainGuard`
   // above is that rule; the two literal patterns are kept as separate assertions

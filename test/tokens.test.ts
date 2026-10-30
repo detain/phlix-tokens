@@ -463,10 +463,12 @@ describe('theme parity', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Step CONTRAST — WCAG contrast-pair CI guard.
-// For each theme, compute the WCAG 2.x contrast ratio between the key
+// Step CONTRAST — WCAG 2.1 contrast-pair CI guard.
+// For each theme, compute the WCAG 2.1 contrast ratio between the key
 // foreground/background pairs from the RESOLVED theme values and assert AA
-// thresholds. Uses the exported `parseHex` + `luminance`. A deliberately
+// thresholds. (The relative-luminance formula is identical across
+// WCAG 2.0–2.2, so the thresholds and claims carry across all three
+// versions.) Uses the exported `parseHex` + `luminance`. A deliberately
 // low-contrast pair (e.g. swapping --text for --text-faint) would trip these.
 //
 // Measured ratios (current values, computed at authoring time 2026-06-28):
@@ -501,7 +503,7 @@ describe('contrast', () => {
   });
 
   for (const t of THEMES) {
-    it(`${t} meets WCAG AA for the key foreground/background pairs`, () => {
+    it(`${t} meets WCAG 2.1 AA for the key foreground/background pairs`, () => {
       const m = resolveTheme(t);
       const text = m['--text'];
       const bg = m['--bg'];
