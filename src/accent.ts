@@ -50,23 +50,24 @@ export function luminance({ r, g, b }: RGB): number {
 }
 
 /**
- * The CSS custom-property keys produced by `deriveAccentVars`. Mirrors the accent
- * role contract in colors.css; consumers can use this to clear an override and
- * fall back to the theme amber.
- */
-/**
  * Single source of truth for the accent "ink" (the readable text/icon color laid
  * on top of an accent fill). `deriveAccentVars` (the runtime accent-picker path)
  * and the static CSS `--accent-contrast` in `src/css/colors.css` MUST agree on
  * these values — they previously drifted (`#1a1205` here vs `#2a1804` in CSS).
  *
- * `ACCENT_INK_DARK` (`#2a1804`) is the canonical dark ink and matches
- * `--accent-contrast` in colors.css line ~30 verbatim, so the CSS default is
+ * `ACCENT_INK_DARK` (`#2a1804`) is the canonical dark ink and matches the
+ * `--accent-contrast` declaration in `src/css/colors.css` verbatim (cited by
+ * name, not line number — the file's declarations shift), so the CSS default is
  * unchanged. `ACCENT_INK_LIGHT` (`#fff8ec`) equals `--amber-50`.
  */
 export const ACCENT_INK_DARK = '#2a1804';
 export const ACCENT_INK_LIGHT = '#fff8ec';
 
+/**
+ * The CSS custom-property keys produced by `deriveAccentVars`. Mirrors the accent
+ * role contract in colors.css; consumers can use this to clear an override and
+ * fall back to the theme amber.
+ */
 export const ACCENT_KEYS = [
   '--accent',
   '--accent-hover',

@@ -46,6 +46,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   — no token or CSS byte moved. (`127474e`)
 
 ### Documentation correction
+- The [0.2.0] entry's prevention paragraph (kept verbatim, per the
+  history-verbatim law) describes the stylelint guard in
+  `src/css/typography.css` as a `stylelint-disable-next-line value-keyword-case`
+  comment "on each of the three declarations". The shipped shape is different:
+  a single `/* stylelint-disable value-keyword-case */` … `/* stylelint-enable
+  value-keyword-case */` block pair wrapping the three `--font-*` declarations
+  (`typography.css:25`/`:29` at this writing). Same rule, same three
+  declarations, same protection — only the fence form was misdescribed, and the
+  newer rules doc (`.claude/rules/css-token-sources.md`) already states the
+  block-pair form correctly. Corrected description lives here, not by editing
+  history.
 - The ⚠ "disjoint history" banner under [0.2.0] (kept verbatim, per the
   history-verbatim law) no longer reflects the repository as measured at
   today's master. `git merge-base v0.1.1 HEAD` =

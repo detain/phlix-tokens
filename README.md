@@ -44,7 +44,11 @@ npm i github:detain/phlix-tokens
 
 Import the self-contained stylesheet once at app entry. It declares the token
 custom properties scoped to `:root` and the `[data-theme=…]` / `[data-density=…]`
-blocks:
+blocks. Note that `style.css` = tokens **+ an opinionated global reset + two
+utility classes**: the same file also ships `*, *::before, *::after` margin
+zeroing and `box-sizing`, list/button/link resets, and the `.numeric` /
+`.eyebrow` helpers. For tokens only, skip `style.css` and import the individual
+family files instead (below):
 
 ```ts
 import '@phlix/tokens/style.css';
@@ -157,6 +161,16 @@ The direction pair is easy to invert: `--accent-text` is the accent color used
 **as** foreground; `--text-on-accent` is the foreground painted **on** an
 accent fill. The `--color-*` legacy set is pure aliases of the canonical names,
 kept for un-migrated consumers — never add new tokens there.
+
+**Roadmap codes.** Some `src/css/` comments carry `R0.x`/`R1`–`R4` style labels
+("Nocturne design system, R0.1", "the primitives (R0.4) …"). These are inherited
+era markers from the planning roadmap of phlix-ui — the package these files were
+extracted from at 0.1.0 — where `R<n>` numbered a roadmap round (R1 the theme
+plumbing, R2 the grid, R4 the appearance preview, and so on). Nothing in this
+repo is keyed on them and no live document defines them here; read them as
+"which round of the old plan introduced this rule", never as scope for current
+work. Stripping them from the shipped CSS comments is deliberately not done
+here: the comment bytes are part of the vendored, pin-governed surface.
 
 ## Regenerating tokens
 
