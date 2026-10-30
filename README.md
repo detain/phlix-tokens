@@ -113,6 +113,14 @@ tokens.shadow.nocturne['--shadow-2'];  // '0 4px 14px rgba(0, 0, 0, 0.48)'
 `tokens.shadow` is keyed by theme name (`Record<ThemeName, Record<string, string>>`)
 so each theme's `--shadow-*` / `--glow-*` ladder resolves correctly.
 
+**Fonts: stacks here, faces elsewhere.** The `--font-display` / `--font-sans` /
+`--font-mono` stacks name **Fraunces**, **Hanken Grotesk** and **JetBrains Mono**,
+but this package ships the *stacks only* — the `@font-face` declarations live in
+the app shell (`phlix-ui/src/assets/fonts/fonts.css`), not in this repo. Resolved
+values handed to a React Native or Roku consumer therefore reference family names
+the platform does not know: register the fonts on that platform yourself, or
+accept the stack's system fallbacks.
+
 The same data is also available as JSON. The document's top-level envelope is
 `{ tokens, themes }`: `data.tokens` is the same map as the `tokens` import
 (a bare `data` is **not** the same shape), and `data.themes` carries the flat
@@ -187,6 +195,29 @@ repo is keyed on them and no live document defines them here; read them as
 "which round of the old plan introduced this rule", never as scope for current
 work. Stripping them from the shipped CSS comments is deliberately not done
 here: the comment bytes are part of the vendored, pin-governed surface.
+
+**`--font-*` and `--fw-*` are one scale written twice.** `--font-normal` /
+`--font-medium` / `--font-semibold` / `--font-bold` are canonical; the
+`--fw-regular` / `--fw-medium` / `--fw-semibold` / `--fw-bold` family
+(`typography.css:46-49`) is a legacy alias set declaring `var(--font-*)`
+values. Prefer `--font-*` in new code. Retiring `--fw-*` is logged as intent
+on 2026-10-30 and rides the first deliberate breaking CSS-surface release —
+the alias bytes live in `typography.css`, which is copied verbatim into the
+vendored `dist/css/` and inlined `dist/style.css` surfaces consumers pin and
+measure (the same name-set-and-order law the server parity guard holds for
+`colors.css`), so removal is a coordinated server re-pin + ui bump, never a
+drive-by.
+
+**Borders are ambient, not component boundaries.** No `--border*` token reaches
+the WCAG 1.4.11 3:1 non-text floor against its theme's surfaces — this is the
+stated posture, not an oversight: form boundaries lean on labels and
+placeholders. The shipped contrast guard (Step CONTRAST in `test/tokens.test.ts`)
+pins four foreground/background pairs × three themes at the AA 4.5:1 text
+threshold; borders are deliberately outside its scope. A consumer that needs a
+3:1 interactive edge must supply its own color today. Adding a
+`--border-component` token is cure-spec'd (measured candidate values on record
+in this repo's review fixlog) for a deliberate future release — a new name is
+itself a frozen-surface change.
 
 ## Regenerating tokens
 

@@ -81,6 +81,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   = 33 is a legitimate release delta. A GitHub `v0.1.1...v0.2.0` compare view
   is therefore **valid**; disregard the banner's "do not diff against the
   v0.1.1 tag" instruction.
+- The [0.2.0] entry's symlink-safety paragraph (kept verbatim, per the
+  history-verbatim law) reports "Measured against `a80514c`: **11 failed |
+  17 passed (28)**; against this fix all 29 pass" without noting the two runs
+  counted different suites: the committed fix (`d8d805f`, the commit the entry
+  belongs to) carries 29 cases — one more than the 28 measured against the
+  baseline — so the delta is a tooth case added while the fix was in
+  development, not silent suite drift after the entry was cut. (Which case
+  cannot be attributed from the repo record; the arithmetic is reconcilable.)
+  Stated here rather than by editing history.
 
 ## [0.2.1] - 2026-09-14
 
