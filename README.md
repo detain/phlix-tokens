@@ -8,8 +8,11 @@
 
 Framework-agnostic **design tokens** for Phlix — the single source of truth
 for the web theme tokens. Inside this package the CSS, JS and JSON forms are
-generated from one source and CI-gated so they never drift; across the estate,
-adoption is by mechanism:
+generated from one source and CI-gated so they never drift (within the
+package's own forms — plugin themes may still override individual tokens at
+runtime through the server's `ThemeTokenAllowlist`, and that override layer
+lives in the theme repos, outside this package's drift gate); across the
+estate, adoption is by mechanism:
 
 - **Direct consumers:** phlix-ui (imports `@phlix/tokens/style.css` and the
   JS/JSON maps; pins `github:detain/phlix-tokens#v0.2.1`) and phlix-server
@@ -37,10 +40,20 @@ zero drift between the CSS and JS/JSON forms shipped from here.
 ## Install
 
 ```sh
-npm i github:detain/phlix-tokens
+npm i github:detain/phlix-tokens#v0.2.1
 ```
 
+Pin a tag: `phlix-tokens` is consumed by tag-pinned tarball across the estate
+(ui pins `#v0.2.1`; server vendors the `v0.2.1` archive and byte-pins
+`src/css/colors.css`), and the bare `github:detain/phlix-tokens` form resolves
+the moving default branch. The npm-registry name is not published.
+
 ## Usage — web (CSS variables)
+
+A full generated enumeration — every custom property with its resolved value
+(theme- and density-keyed families side by side) — lives in
+[`docs/token-reference.md`](./docs/token-reference.md); rebuild it with
+`npm run generate:reference`.
 
 Import the self-contained stylesheet once at app entry. It declares the token
 custom properties scoped to `:root` and the `[data-theme=…]` / `[data-density=…]`
@@ -100,7 +113,10 @@ tokens.shadow.nocturne['--shadow-2'];  // '0 4px 14px rgba(0, 0, 0, 0.48)'
 `tokens.shadow` is keyed by theme name (`Record<ThemeName, Record<string, string>>`)
 so each theme's `--shadow-*` / `--glow-*` ladder resolves correctly.
 
-The same data is also available as JSON:
+The same data is also available as JSON. The document's top-level envelope is
+`{ tokens, themes }`: `data.tokens` is the same map as the `tokens` import
+(a bare `data` is **not** the same shape), and `data.themes` carries the flat
+per-theme resolved maps behind `resolveTheme`:
 
 ```ts
 import data from '@phlix/tokens/tokens.json';
@@ -185,11 +201,17 @@ The generator is pure and deterministic (no network, no clock/random). CI fails
 if the committed artifact is out of date, and `scripts/generate-tokens.mjs`
 throws on an over-nested `var()` fallback rather than mis-resolving it.
 
+`docs/token-reference.md` is derived from the same generated artifact: after
+editing CSS, regenerate **both** (`npm run generate && npm run generate:reference`).
+The committed doc is pinned against a rebuild by
+`test/token-reference.test.mjs`, so a stale reference fails the suite.
+
 ## Scripts
 
 | script           | purpose                                                     |
 | ---------------- | ----------------------------------------------------------- |
 | `npm run generate` | parse CSS → write `src/tokens.generated.{ts,json}`        |
+| `npm run generate:reference` | render `docs/token-reference.md` from `src/tokens.generated.json` |
 | `npm run typecheck`| `tsc --noEmit` (strict)                                   |
 | `npm run build`    | generate → typecheck → vite lib build (ES+CJS) → d.ts → CSS |
 | `npm run test`     | vitest (watch)                                            |

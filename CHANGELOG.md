@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `docs/token-reference.md` — a generated enumeration of every custom property
+  with its resolved value (per-theme and per-density views included), closing
+  the "no human-facing token reference" gap. Produced by
+  `npm run generate:reference` (`scripts/generate-token-reference.mjs` + pure
+  renderer `scripts/lib/token-reference.mjs`) from `src/tokens.generated.json`
+  — the same resolved map that ships as `dist/tokens.json` — and pinned
+  freshness- and coverage-wise by `test/token-reference.test.mjs` (suite
+  6 files / 156 tests → 7 / 160: the two new tests, plus two rows the existing
+  per-script guard scan over `scripts/*.mjs` auto-derives for the two new
+  files — no existing golden moved). Reference data only: no token, CSS or
+  committed dist byte moved.
+
 ### Changed
 - README: the new Naming section's three enumeration claims corrected to
   computed truth (M-TOKENS-09 review): the re-count command lost its `^\s*`
