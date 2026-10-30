@@ -183,7 +183,11 @@ must not extend the `--text-<word>` pattern; name the component role instead.
 The direction pair is easy to invert: `--accent-text` is the accent color used
 **as** foreground; `--text-on-accent` is the foreground painted **on** an
 accent fill. The `--color-*` legacy set is pure aliases of the canonical names,
-kept for un-migrated consumers — never add new tokens there.
+kept for un-migrated consumers — never add new tokens there. The aliases
+remain until a coordinated breaking wave retires them; removal is a
+minor-major event (the server's allowlist and transcription parse these names,
+and ui plus the plugin themes consume them), with intent logged 2026-10-30
+alongside the `--fw-*` weight aliases.
 
 **Roadmap codes.** Some `src/css/` comments carry `R0.x`/`R1`–`R4` style labels
 ("Nocturne design system, R0.1", "the primitives (R0.4) …"). These are inherited
@@ -217,6 +221,17 @@ threshold; borders are deliberately outside its scope. A consumer that needs a
 `--border-component` token is cure-spec'd (measured candidate values on record
 in this repo's review fixlog) for a deliberate future release — a new name is
 itself a frozen-surface change.
+
+**TV substrates read this scale as web-first.** The type ramp targets desktop
+web: `--text-base` is `0.9375rem` (15px) and `--text-2xs` is `0.6875rem` (11px),
+and this package ships **no border-width tokens** — every consumer hardcodes
+`1px`. On 10-foot TV surfaces (the tizen and windows embeds) 15px is roughly
+1.4% of 1080p height against the classic viewing-distance minimum of ~2%
+(~21.6px), and hairlines thin out under 4K upscaling. Those surfaces must scale
+the root font-size rather than expect a different token set. A `--border-w`
+scale (plus a `data-density='tv'` step) is cure-spec'd in this repo's review
+fixlog for a deliberate release — new names are frozen-surface changes, so they
+never ride a docs patch.
 
 ## Regenerating tokens
 

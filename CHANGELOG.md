@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `test/selector-twins.test.ts` — the themes.ts ↔ src/css DOM-attribute
+  lockstep claim is now executable, not prose (M-TOKENS-16): comment-stripped
+  CSS must contain a `[data-*='value']` selector for every theme/density union
+  member and the `data-reduced-motion='true'` activation, and must declare no
+  selector value the TS unions don't know (both directions; house comment-strip
+  idiom with a docs-only non-vacuity phrase; teeth re-proven by two live
+  selector mutations, each red, tree restored byte-clean). Suite
+  7 files / 160 tests → 8 / 163 (all three rows new; no existing golden moved;
+  no dist bytes touched — the two mutated CSS files were restored via git and
+  the committed CSS is byte-identical).
 - README: "Releasing tokens — the cascade" section — the surface list, the
   ui tag-pin, the server codeload-tarball pin and its `ColorsCssParityTest`
   sha/transcription/allowlist trio, the name-set-and-**order** law, the
@@ -26,6 +36,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   committed dist byte moved.
 
 ### Changed
+- README (M-TOKENS-21, M-TOKENS-34): a TV-substrate note states the web-first
+  scale honestly (15px base ≈ 1.4% of 1080p, no border-width tokens shipped —
+  measured from `dist/tokens.json`; TV surfaces must scale root font-size;
+  the `--border-w` scale / `data-density='tv'` additions are cure-spec'd in the
+  fixlog, frozen-surface-governed) and the `--color-*` legacy-alias paragraph
+  gained its sunset law (aliases stay until a coordinated minor-major breaking
+  wave retires them; intent logged 2026-10-30 alongside `--fw-*`). Prose only.
 - Documentation pass booked for W-min174/176/177 (prose + comment-only; no
   token, CSS or committed dist byte moved): README Usage-web now discloses the
   `style.css` global-reset/utility surface (M-TOKENS-12/-32), the inherited
