@@ -3,7 +3,10 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  *
  * The single source of truth for theme tokens shared across web clients
- * (phlix-ui, windows, tizen) and non-CSS clients (React Native mobile, Roku).
+ * (phlix-ui directly; windows and tizen via its bundle) and INTENDED for
+ * non-CSS clients (React Native mobile, Roku) when they migrate — the JS/JSON
+ * maps exist for exactly that adoption; mobile/Roku do not depend on this
+ * package yet.
  * Pure TypeScript: NO dependency on Vue / Pinia / vue-router.
  *
  *   Web:  import '@phlix/tokens/style.css';

@@ -37,6 +37,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   nits (M-TOKENS-39). Internal comment-only touch: `src/accent.ts` keys
   docblock moved above its const (M-TOKENS-07/-28) — its only dist exposure is
   `accent.d.ts` doc comments and the `.map` files' embedded sources.
+- `src/index.ts` header + `package.json` description: the non-CSS adoption
+  overclaim is corrected to the intended-consumers truth (M-TOKENS-04) —
+  mobile/Roku are the consumers the JS/JSON maps are prepared for, not
+  current ones. The only dist exposure is comment bytes in
+  `dist/index.d.ts`; every value-carrying artifact (`style.css`, `css/*`,
+  `tokens.json`, bundles) re-verified byte-identical against the parent
+  commit.
 - README: the new Naming section's three enumeration claims corrected to
   computed truth (M-TOKENS-09 review): the re-count command lost its `^\s*`
   anchor — line-start anchoring is blind to the 12 mid-line declarations
