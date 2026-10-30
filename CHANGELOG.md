@@ -7,6 +7,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Changed
+- README: the new Naming section's three enumeration claims corrected to
+  computed truth (M-TOKENS-09 review): the re-count command lost its `^\s*`
+  anchor — line-start anchoring is blind to the 12 mid-line declarations
+  (second-on-line `fw-*` sizes and the two-per-line `*-bg` pairs), so it
+  read 128 while `dist/tokens.json` — the sentence's own "full
+  enumeration" — says 140; the family list is completed from 15 to the
+  actual 27 first segments (it omitted amber, ambient, color, error, field,
+  glow, grain, info, stack, success, vignette, warning); and the grammar is
+  restated `--<family>[-<role>[-<variant>]]` because the corpus carries 11
+  family-only head tokens (`--accent`, `--bg`, `--text`, …). All three
+  figures re-derived by scripted enumeration at this commit. Prose only;
+  no token, CSS or committed dist byte moved.
 - README: the provenance paragraph now states the extraction history correctly
   (the CSS was copied from phlix-ui's `src/tokens/` at 0.1.0; phlix-ui #137
   inverted the flow and its `src/tokens/` no longer holds those files) and the

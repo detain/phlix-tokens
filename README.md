@@ -121,17 +121,27 @@ exported), the single source of truth shared with `--accent-contrast` in
 
 ## Naming
 
-The grammar is `--<family>-<role>[-<variant>]`. Families are bare nouns —
-`accent`, `bg`, `surface`, `text`, `border`, `space`, `radius`, `shadow`,
-`ease`, `dur`, `font`, `fw`, `tracking`, `leading`, and `control-*` (density
-geometry). There is deliberately **no `--phlix-` prefix**: the bare names are
-the frozen contract — the server's `ThemeTokenAllowlist` governs which of them
-plugin themes may override, and renaming is a breaking cascade across server,
-ui, and every client. The blessed consumption pattern is the two-argument
-`var(--x, literal)` fallback form phlix-ui uses everywhere — it survives
-partial imports and load-order failure. Re-count the surface area with
-`grep -hoE '^\s*--[a-zA-Z0-9-]+:' src/css/*.css | sort -u | wc -l`
-(128 at last census; the full enumeration is `dist/tokens.json`).
+The grammar is `--<family>[-<role>[-<variant>]]`. The role is optional: the
+bare family-head is a token in its own right — `--accent`, `--ambient`,
+`--bg`, `--border`, `--error`, `--info`, `--success`, `--surface`, `--text`,
+`--vignette`, `--warning` (11 at last census). Families are bare nouns; the
+full set of first segments is 27: `accent`, `amber` (the palette ramp),
+`ambient`, `bg`, `border`, `color` (the legacy alias namespace — see
+below), `control` (density geometry), `dur`, `ease`, `error`, `field`,
+`font`, `fw` (font weight), `glow`, `grain`, `info`, `leading`, `radius`,
+`shadow`, `space`, `stack`, `success`, `surface`, `text`, `tracking`,
+`vignette`, `warning`. There is deliberately **no `--phlix-` prefix**: the
+bare names are the frozen contract — the server's `ThemeTokenAllowlist`
+governs which of them plugin themes may override, and renaming is a
+breaking cascade across server, ui, and every client. The blessed
+consumption pattern is the two-argument `var(--x, literal)` fallback form
+phlix-ui uses everywhere — it survives partial imports and load-order
+failure. Re-count the surface area with
+`grep -hoE -- '--[a-zA-Z0-9-]+:' src/css/*.css | sort -u | wc -l`
+(140 at last census; the full enumeration is `dist/tokens.json`) — and the
+family set with
+`grep -hoE -- '--[a-zA-Z0-9-]+:' src/css/*.css | sed 's/^--//; s/:$//' | cut -d- -f1 | sort -u`
+(27 names).
 
 **`--text-*` is two families.** Colors: `--text`, `--text-muted`,
 `--text-subtle`, `--text-faint`, `--text-on-accent` (defined in
