@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-03
+
+### Changed
+- Version bump 0.2.1 → 0.2.2 (`package.json` + lockfile). The committed
+  `dist/` was verified current by a clean CI-faithful release build (`npm ci`,
+  `npm run generate` no-op plus the vacuity probe, lint, typecheck, build,
+  `git diff --exit-code -- dist`) — zero artifact bytes moved; this release
+  books the W-min174–180 batches and doc/truth passes recorded below.
+
 ### Added
 - `test/selector-twins.test.ts` — the themes.ts ↔ src/css DOM-attribute
   lockstep claim is now executable, not prose (M-TOKENS-16): comment-stripped

@@ -1,6 +1,6 @@
 {
   "name": "@phlix/tokens",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Framework-agnostic design tokens for Phlix — single source of truth for theme tokens; consumed by phlix-ui (windows/tizen via its bundle), with JS/JSON maps prepared for React Native/Roku adoption (not yet migrated). No Vue/Pinia/vue-router.",
   "type": "module",
   "main": "./dist/phlix-tokens.umd.cjs",
