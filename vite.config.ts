@@ -3,6 +3,10 @@ import { resolve } from 'node:path';
 
 // Framework-agnostic lib build — NO Vue plugin, NO Vue/Pinia externals. Emits
 // ES + CJS so the package is consumable from web bundlers and Node/CJS alike.
+// Output names carry exactly the formats emitted (.js = ES, .cjs = CommonJS):
+// no `lib.name` is set because no UMD/IIFE global build exists for it to name
+// (the former `umd.cjs` file name asserted a script-tag artifact the build never
+// produced — LW-032, review anchor tokens__writer.md#3).
 export default defineConfig({
   build: {
     // Keep CSS un-inlined; the shipped CSS is produced by scripts/build-css.mjs,
@@ -10,9 +14,8 @@ export default defineConfig({
     assetsInlineLimit: 0,
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
-      name: 'PhlixTokens',
       formats: ['es', 'cjs'],
-      fileName: (format) => `phlix-tokens.${format === 'es' ? 'js' : 'umd.cjs'}`,
+      fileName: (format) => `phlix-tokens.${format === 'es' ? 'js' : 'cjs'}`,
     },
     sourcemap: true,
   },

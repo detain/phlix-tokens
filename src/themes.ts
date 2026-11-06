@@ -9,7 +9,7 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-import { deriveAccentVars, ACCENT_KEYS } from './accent';
+import { deriveAccentVars, ACCENT_KEYS } from './accent.js';
 
 export type ThemeName = 'nocturne' | 'daylight' | 'midnight';
 export type Density = 'comfortable' | 'compact';

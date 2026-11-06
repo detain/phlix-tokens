@@ -13,8 +13,9 @@ runtime through the server's `ThemeTokenAllowlist`, and that override layer
 lives in the theme repos, outside this package's drift gate); across the
 estate, adoption is by mechanism:
 
-- **Direct consumers:** phlix-ui (imports `@phlix/tokens/style.css` and the
-  JS/JSON maps; pins `github:detain/phlix-tokens#v0.2.1`) and phlix-server
+- **Direct consumers:** phlix-ui (imports `@phlix/tokens/style.css` and reads
+  the `./css/*` text in tests — it does not import the JS/JSON maps; pins
+  `github:detain/phlix-tokens#v0.2.1`) and phlix-server
   (vendors the tag-pinned tarball; its `ColorsCssParityTest` byte-pins
   `src/css/colors.css`).
 - **Indirect, via the phlix-ui bundle:** the windows and tizen clients — their
@@ -39,12 +40,13 @@ zero drift between the CSS and JS/JSON forms shipped from here.
 ## Install
 
 ```sh
-npm i github:detain/phlix-tokens#v0.2.1
+npm i github:detain/phlix-tokens#v0.2.2
 ```
 
 Pin a tag: `phlix-tokens` is consumed by tag-pinned tarball across the estate
-(ui pins `#v0.2.1`; server vendors the `v0.2.1` archive and byte-pins
-`src/css/colors.css`), and the bare `github:detain/phlix-tokens` form resolves
+(ui pins `#v0.2.1`; server vendors the `v0.2.2` archive and byte-pins
+`src/css/colors.css` — both as measured at the 2026-11-06 tree), and the bare
+`github:detain/phlix-tokens` form resolves
 the moving default branch. The npm-registry name is not published.
 
 ## Usage — web (CSS variables)
@@ -197,7 +199,12 @@ plumbing, R2 the grid, R4 the appearance preview, and so on). Nothing in this
 repo is keyed on them and no live document defines them here; read them as
 "which round of the old plan introduced this rule", never as scope for current
 work. Stripping them from the shipped CSS comments is deliberately not done
-here: the comment bytes are part of the vendored, pin-governed surface.
+here: the comment bytes are part of the vendored, pin-governed surface. The
+same era-marking applies to the file banners: six of the eight `src/css/*.css`
+files still carry an `@phlix/ui` header (colors, density, motion, radius,
+shadow, typography; spacing and index carry only the copyright line) — the
+extraction-era provenance of the 0.1.0 copy-out, not a claim that these files
+live upstream.
 
 **`--font-*` and `--fw-*` are one scale written twice.** `--font-normal` /
 `--font-medium` / `--font-semibold` / `--font-bold` are canonical; the
@@ -231,7 +238,17 @@ and this package ships **no border-width tokens** — every consumer hardcodes
 the root font-size rather than expect a different token set. A `--border-w`
 scale (plus a `data-density='tv'` step) is cure-spec'd in this repo's review
 fixlog for a deliberate release — new names are frozen-surface changes, so they
-never ride a docs patch.
+never ride a docs patch. One web-engine floor is already inside the scale: the
+six top type steps (`--text-xl` … `--text-hero`, `typography.css:38-43`) are
+`clamp()` expressions — the package's only modern CSS construct — and need
+Chrome 79 / Safari 13.1 or newer (2020). This package declares no browser floor
+of its own; the tizen contract floor (Chromium ≥ 85,
+`phlix-tizen-client/docs/runtime-floor.md`) already clears it. An older engine
+that cannot parse `clamp()` still stores the custom property: token values are
+unparsed token streams, so the failure surfaces at computed-value time when the
+`var()` reference substitutes — a literal fallback (`var(--text-xl, 1.75rem)`)
+does **not** rescue it, because `var()` fallbacks fire only for never-defined
+properties, never for defined-but-invalid ones.
 
 ## Regenerating tokens
 
@@ -259,7 +276,7 @@ bytes, so a CSS edit is only half the change. The surfaces, in custody order:
 - `src/css/*.css` — the hand-edited source. Copied **verbatim** (comments
   included) into `dist/css/*.css` and inlined into `dist/style.css` by
   `scripts/build-css.mjs`.
-- `src/tokens.generated.{ts,js,json}` — generated from `src/css` by
+- `src/tokens.generated.{ts,json}` — generated from `src/css` by
   `npm run generate`; CI fails if committed copies are stale.
 - `dist/` — the committed build output (`style.css`, `css/*`, `tokens.json`,
   the bundles + `.d.ts`).
@@ -295,12 +312,24 @@ The laws that make a "harmless" CSS reshuffle breaking:
    (frozen surface); so is any change to `src/css` **comment bytes** — they
    ride into the vendored files verbatim.
 
+**Release-note wording law:** never say "zero bytes moved" for a tag range
+without naming which artifacts. Doc-comment edits to `src/` are byte-frozen
+nowhere — `.d.ts` files carry the docblocks and the `.map` files embed the full
+sources — so `git diff <prev-tag> <tag> -- dist/` can legitimately move files
+while every value-carrying artifact (`style.css`, `css/*`, `tokens.json`, the
+bundles) is byte-identical. State exactly that split; the bare "zero bytes"
+form is falsifiable by the very entries that booked the comment moves (the
+v0.2.2 range is the recorded example).
+
 Coordinated release order: land here → push → tag → server re-pin (composer
 pin + `ColorsCssParityTest` sha/transcription/allowlist refresh) → ui tag-pin
-bump. One caveat from history: the server guard's docblock still narrates its
-chain-of-custody from the older tag commit (`colors.css @ 5500d70b, tag v0.2.0`)
-while its lock now fetches the `v0.2.1` tag archive — pin *provenance* drifts
-even when bytes don't. Treat the sha constant's **name** as the living
+bump. One dated lesson from history: through the v0.2.1 era the server guard's
+docblock narrated its chain-of-custody from the older tag commit
+(`colors.css @ 5500d70b, tag v0.2.0`) while its lock fetched the `v0.2.1` tag
+archive — pin *provenance* drifting even when bytes don't. The v0.2.2 re-pin
+wave closed that instance (the docblock now cites the `v0.2.2` tag commit); the
+drift class is why the law below stands. Treat the sha constant's **name** as
+the living
 contract, never README lore: this section quotes no sha value, so it cannot rot
 on the next re-pin.
 

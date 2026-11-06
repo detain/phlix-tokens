@@ -1,4 +1,4 @@
-import type { ThemeName } from './themes';
+import type { ThemeName } from './themes.js';
 export interface Tokens {
     base: Record<string, string>;
     nocturne: Record<string, string>;

@@ -17,7 +17,7 @@ export {
   tokens,
   resolveTheme,
   type Tokens,
-} from './tokens.generated';
+} from './tokens.generated.js';
 
 export {
   type ThemeName,
@@ -32,7 +32,7 @@ export {
   type TokenAttributeOptions,
   type TokenTarget,
   applyTokenAttributes,
-} from './themes';
+} from './themes.js';
 
 export {
   type RGB,
@@ -46,4 +46,4 @@ export {
   ACCENT_INK_DARK,
   ACCENT_INK_LIGHT,
   deriveAccentVars,
-} from './accent';
+} from './accent.js';

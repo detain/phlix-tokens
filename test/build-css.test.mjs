@@ -36,7 +36,7 @@ const DIST_CSS = join(DIST, 'css');
 //   dist/style.css
 //   dist/tokens.json
 //   dist/css/*.css
-// The rest of dist/ (phlix-tokens.js, phlix-tokens.umd.cjs, etc.) is produced
+// The rest of dist/ (phlix-tokens.js, phlix-tokens.cjs, etc.) is produced
 // by `vite build` and is NOT touched by build-css.mjs.
 const backup = {};
 

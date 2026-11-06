@@ -6,6 +6,69 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- Forward correction (LW-028): the 0.2.2 header bullet's claim "zero artifact
+  bytes moved" was imprecise at the byte level. Across
+  `git diff v0.2.1 v0.2.2 -- dist/` exactly four files moved:
+  `dist/accent.d.ts` + `dist/index.d.ts` (doc-comment text) and their `.map`
+  files (embedded sources), 15 insertions / 11 deletions total. The precise
+  truth is the split the entry's own detail bullets already state: every
+  value-carrying artifact (`style.css`, `css/*`, `tokens.json`, the JS/CJS
+  bundles) is byte-identical against v0.2.1, while declaration and sourcemap
+  comment bytes moved with the comment-only source touches. History above is
+  verbatim and stays; the wording law that prevents recurrence now lives in
+  the README's "Releasing tokens — the cascade" section.
+
+### Changed
+- `package.json`: `"sideEffects"` declares only the CSS entries
+  (`./dist/style.css`, `./dist/css/*`) — the purity contract for
+  sideEffects-consulting bundlers (the stated RN consumers' Metro is that
+  class): every JS export is side-effect-free. Measured payload effect of the
+  declaration is zero in the two bundlers tested: a single-helper `parseHex`
+  import bundles to 419 B raw / 305 B gz under vite 8 (rolldown) and 394 B /
+  299 B under esbuild 0.28.1, byte-identical with and without the flag — both
+  already tree-shake the provably-pure initializer. (LW-030)
+- Relative specifiers in `src/` now carry explicit `.js` extensions
+  (`index.ts` re-exports, `themes.ts`, the `tokens.generated.ts` header) plus
+  the one generator line in `scripts/lib/tokens.mjs` that writes that header,
+  and the `.` export condition list is reordered types-first. This repairs
+  `moduleResolution: "node16"` consumers: the extensionless re-exports inside
+  `dist/index.d.ts` previously failed strict tsc with TS2307 (`./tokens.generated`)
+  plus two TS2834 (extensionless relative imports), while `bundler` resolution
+  always passed. Verified on a clean scratch harness: node16-before exit 2
+  with exactly those errors inside `dist/index.d.ts`; node16-after exit 0;
+  bundler exit 0 on both sides (the reorder is hygiene, not behavior).
+  (LW-031)
+- The CommonJS bundle renamed `dist/phlix-tokens.umd.cjs` → `dist/phlix-tokens.cjs`
+  (`main`, `exports.require`, vite `fileName`), and the vestigial
+  `build.lib.name` global was dropped from `vite.config.ts` — the umd format's
+  emitted CJS never used it, and the `umd.cjs` filename asserted a script-tag
+  artifact that never existed. Emitted CJS bytes differ only in the
+  `sourceMappingURL` comment name; the ES bundle is byte-identical.
+  `test/build-css.test.mjs` header comment re-anchored to the new filename.
+  (LW-032)
+
+### Docs
+- README (LW-027): install snippet `#v0.2.1` → `#v0.2.2`; the ui bullet no
+  longer claims phlix-ui imports the JS/JSON maps (measured: `style.css`
+  side-effect import plus `./css/*` text reads in tests, zero JS-map
+  imports); the vendored-archive parenthetical updated to the server's
+  `v0.2.2` archive with both pins dated to the 2026-11-06 tree; the generated
+  files expansion corrected to `{ts,json}` (no `.js` form is generated); the
+  server-docblock provenance-drift anecdote re-tensed as dated history
+  (cured at the v0.2.2 re-pin wave — the guard docblock now cites the v0.2.2
+  tag commit). The ui `#v0.2.1` pin claims stay under their "as measured at
+  the v0.2.1 era" hedge (ui still pins `#v0.2.1` at this writing).
+- README (LW-029): the TV-substrates section gained the web-engine floor note
+  — the six top type steps are `clamp()` (`typography.css:38-43`, the only
+  modern construct in the package; Chrome 79 / Safari 13.1), the package
+  declares no floor, the tizen contract floor (Chromium ≥ 85) clears it, and
+  on an older engine the unsupported function is stored as a token stream and
+  fails at computed-value time — a `var()` literal fallback does not rescue a
+  defined-but-invalid custom property. The roadmap-codes section records the
+  extraction-era banner identity (six of eight `src/css` files carry the
+  `@phlix/ui` header; spacing and index carry copyright only).
+
 ## [0.2.2] - 2026-11-03
 
 ### Changed
