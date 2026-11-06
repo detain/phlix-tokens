@@ -8,12 +8,23 @@
  * selectors, so they must stay in lockstep with `src/css/*.css`.
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
+import { type AccentScheme } from './accent.js';
 export type ThemeName = 'nocturne' | 'daylight' | 'midnight';
 export type Density = 'comfortable' | 'compact';
 /** All selectable themes, in canonical order. */
 export declare const THEMES: readonly ThemeName[];
 /** All selectable densities, in canonical order. */
 export declare const DENSITIES: readonly Density[];
+/**
+ * Which accent-text law each theme follows: 'dark' themes render accent text
+ * with the accent hue itself, 'light' themes must darken it to clear AA on
+ * their light surfaces (colors.css). This map mirrors each `[data-theme]`
+ * block's own `color-scheme:` declaration — test/tokens.test.ts pins that
+ * equality against the parsed colors.css, so a block renamed or re-schemed
+ * without updating this map reddens the suite (LW-073). applyTokenAttributes
+ * uses it to pick the derivation branch for an accent override.
+ */
+export declare const THEME_SCHEMES: Record<ThemeName, AccentScheme>;
 /** First-time / fallback theme — Nocturne (the dark default `:root` resolves to). */
 export declare const DEFAULT_THEME: ThemeName;
 /** First-time / fallback density. */

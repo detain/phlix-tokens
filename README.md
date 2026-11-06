@@ -58,7 +58,8 @@ A full generated enumeration — every custom property with its resolved value
 
 Import the self-contained stylesheet once at app entry. It declares the token
 custom properties scoped to `:root` and the `[data-theme=…]` / `[data-density=…]`
-blocks. Note that `style.css` = tokens **+ an opinionated global reset + two
+blocks; the `[data-reduced-motion=…]` kill-switch is scoped the same way, to the
+subtree carrying the attribute. Note that `style.css` = tokens **+ an opinionated global reset + two
 utility classes**: the same file also ships `*, *::before, *::after` margin
 zeroing and `box-sizing`, list/button/link resets, and the `.numeric` /
 `.eyebrow` helpers. For tokens only, skip `style.css` and import the individual
@@ -133,20 +134,30 @@ import data from '@phlix/tokens/tokens.json';
 
 ### Deriving a custom accent
 
-`deriveAccentVars(hex)` produces the full accent role set (hover/active/soft/
-ring/contrast) from a single hex — the same pure logic phlix-ui's accent picker
-uses:
+`deriveAccentVars(hex, scheme?)` produces the full accent role set
+(hover/active/soft/ring/text/contrast) from a single hex — the same pure logic
+phlix-ui's accent picker uses:
 
 ```ts
 import { deriveAccentVars } from '@phlix/tokens';
 
-deriveAccentVars('#3366ff');
-// { '--accent': '#3366ff', '--accent-hover': …, '--accent-contrast': '#fff8ec', … }
+deriveAccentVars('#3366ff');          // dark-scheme target (default)
+deriveAccentVars('#3366ff', 'light'); // light-scheme target (e.g. daylight)
+// { '--accent': '#3366ff', …, '--accent-text': …, '--accent-contrast': '#fff8ec' }
 ```
 
 `--accent-contrast` is picked from `ACCENT_INK_DARK` / `ACCENT_INK_LIGHT` (also
 exported), the single source of truth shared with `--accent-contrast` in
-`src/css/colors.css`.
+`src/css/colors.css`. The text role `--accent-text` follows the per-scheme law
+the colors.css blocks encode: dark themes use the accent hue itself (AA on
+their dark surfaces); a `light` target darkens the hue in bounded steps until
+it clears AA against `LIGHT_TEXT_REFERENCE` (daylight `--surface-3`, the
+darkest shipped light background) — the continuous form of the ramp law by
+which daylight ships `var(--amber-800)` under its amber-500 fill, where the
+raw hue measures only 1.82–2.01:1 as text. `THEME_SCHEMES` maps each theme to
+its branch (pinned against colors.css's own `color-scheme:` declarations), and
+`applyTokenAttributes` consults it so an accent override re-paints the text
+role with the fill instead of leaving it on the theme ramp.
 
 ## Naming
 
@@ -181,10 +192,21 @@ values leaked into `tokens.typography`; it now categorizes by **source file**.
 That is the law for new tokens too: the file you edit declares the family —
 sizes go in `typography.css`, colors in `colors.css` — and a new *color role*
 must not extend the `--text-<word>` pattern; name the component role instead.
+Within the color family, **`--text-faint` is decorative-only**: measured
+1.88–2.29:1 on its theme surfaces it sits below AA and below the 3:1 non-text
+floor, so it belongs to watermark glyphs, divider ghosts and texture — never
+to meaningful text. The shipped guard pins that sub-3:1 posture with
+deliberately-inverted assertions: any value lift reddens the suite so this
+paragraph and the live label sites rotate in the same commit (a move toward
+AA is an owner-gated, parity-tested cascade, not a drive-by).
 
 The direction pair is easy to invert: `--accent-text` is the accent color used
 **as** foreground; `--text-on-accent` is the foreground painted **on** an
-accent fill. The `--color-*` legacy set is pure aliases of the canonical names,
+accent fill. The companion law is fill-vs-foreground: `--accent` itself is a
+**fill** — as text it measures 1.82–2.01:1 on daylight's surfaces, so never
+paint text with `--accent` directly; take accent-colored text from
+`--accent-text` (darkened to AA on light schemes; see "Deriving a custom
+accent") and ink-on-fill from `--text-on-accent`. The `--color-*` legacy set is pure aliases of the canonical names,
 kept for un-migrated consumers — never add new tokens there. The aliases
 remain until a coordinated breaking wave retires them; removal is a
 minor-major event (the server's allowlist and transcription parse these names,
@@ -222,8 +244,12 @@ drive-by.
 the WCAG 1.4.11 3:1 non-text floor against its theme's surfaces — this is the
 stated posture, not an oversight: form boundaries lean on labels and
 placeholders. The shipped contrast guard (Step CONTRAST in `test/tokens.test.ts`)
-pins four foreground/background pairs × three themes at the AA 4.5:1 text
-threshold; borders are deliberately outside its scope. A consumer that needs a
+pins eight foreground/background pairs × three themes at the AA 4.5:1 text
+threshold (`--text`, `--text-on-accent`, `--text-muted`, `--accent-text`,
+`--text-subtle` over their rated backgrounds — every ratio the colors.css
+comments assert), checks the daylight focus ring's ≥3:1 composite separately,
+and pins `--text-faint`'s decorative-only posture with inverted assertions;
+borders are deliberately outside its scope. A consumer that needs a
 3:1 interactive edge must supply its own color today. Adding a
 `--border-component` token is cure-spec'd (measured candidate values on record
 in this repo's review fixlog) for a deliberate future release — a new name is

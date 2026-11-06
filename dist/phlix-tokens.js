@@ -942,37 +942,57 @@ var u = "#2a1804", d = "#fff8ec", f = [
 	"--accent-active",
 	"--accent-soft",
 	"--accent-ring",
+	"--accent-text",
 	"--accent-contrast"
-];
-function p(e) {
-	let t = r(e);
-	if (!t) return null;
-	let n = l(t) > .45 ? u : d;
+], p = "#e8dcc6", m = 4.5, h = 25;
+function g(e, t) {
+	let n = l(e), r = l(t);
+	return (Math.max(n, r) + .05) / (Math.min(n, r) + .05);
+}
+function _(e) {
+	let t = r(p);
+	if (!t) throw Error("LIGHT_TEXT_REFERENCE must be a parseable hex — this is a source bug");
+	let n = { ...e }, i = 0;
+	for (; g(n, t) < m;) {
+		if (i >= h) throw Error(`accent-text could not clear AA within ${h} passes`);
+		n = s(n, .1), i++;
+	}
+	return n;
+}
+function v(e, t = "dark") {
+	let n = r(e);
+	if (!n) return null;
+	let i = l(n) > .45 ? u : d;
 	return {
-		"--accent": a(t),
-		"--accent-hover": a(o(t, .12)),
-		"--accent-active": a(s(t, .12)),
-		"--accent-soft": c(t, .14),
-		"--accent-ring": c(t, .55),
-		"--accent-contrast": n
+		"--accent": a(n),
+		"--accent-hover": a(o(n, .12)),
+		"--accent-active": a(s(n, .12)),
+		"--accent-soft": c(n, .14),
+		"--accent-ring": c(n, .55),
+		"--accent-text": a(t === "light" ? _(n) : n),
+		"--accent-contrast": i
 	};
 }
 //#endregion
 //#region src/themes.ts
-var m = [
+var y = [
 	"nocturne",
 	"daylight",
 	"midnight"
-], h = ["comfortable", "compact"], g = "nocturne", _ = "comfortable", v = "data-theme", y = "data-density", b = "data-reduced-motion";
-function x(e, t) {
+], b = ["comfortable", "compact"], x = {
+	nocturne: "dark",
+	daylight: "light",
+	midnight: "dark"
+}, S = "nocturne", C = "comfortable", w = "data-theme", T = "data-density", E = "data-reduced-motion";
+function D(e, t) {
 	let n = e ?? (typeof document < "u" ? document.documentElement : null);
 	if (!n) return;
-	n.setAttribute(v, t.theme), n.setAttribute(y, t.density), t.reducedMotion ? n.setAttribute(b, "true") : n.removeAttribute(b);
-	let r = t.accent ? p(t.accent) : null;
+	n.setAttribute(w, t.theme), n.setAttribute(T, t.density), t.reducedMotion ? n.setAttribute(E, "true") : n.removeAttribute(E);
+	let r = t.accent ? v(t.accent, x[t.theme]) : null;
 	if (r) for (let [e, t] of Object.entries(r)) n.style.setProperty(e, t);
 	else for (let e of f) n.style.removeProperty(e);
 }
 //#endregion
-export { u as ACCENT_INK_DARK, d as ACCENT_INK_LIGHT, f as ACCENT_KEYS, y as DATA_DENSITY, b as DATA_REDUCED_MOTION, v as DATA_THEME, _ as DEFAULT_DENSITY, g as DEFAULT_THEME, h as DENSITIES, m as THEMES, x as applyTokenAttributes, s as darken, p as deriveAccentVars, o as lighten, l as luminance, r as parseHex, n as resolveTheme, c as rgba, a as toHex, e as tokens };
+export { u as ACCENT_INK_DARK, d as ACCENT_INK_LIGHT, f as ACCENT_KEYS, T as DATA_DENSITY, E as DATA_REDUCED_MOTION, w as DATA_THEME, C as DEFAULT_DENSITY, S as DEFAULT_THEME, b as DENSITIES, p as LIGHT_TEXT_REFERENCE, y as THEMES, x as THEME_SCHEMES, D as applyTokenAttributes, s as darken, v as deriveAccentVars, o as lighten, l as luminance, r as parseHex, n as resolveTheme, c as rgba, a as toHex, e as tokens };
 
 //# sourceMappingURL=phlix-tokens.js.map

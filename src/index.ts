@@ -24,6 +24,7 @@ export {
   type Density,
   THEMES,
   DENSITIES,
+  THEME_SCHEMES,
   DEFAULT_THEME,
   DEFAULT_DENSITY,
   DATA_THEME,
@@ -45,5 +46,7 @@ export {
   ACCENT_KEYS,
   ACCENT_INK_DARK,
   ACCENT_INK_LIGHT,
+  type AccentScheme,
+  LIGHT_TEXT_REFERENCE,
   deriveAccentVars,
 } from './accent.js';

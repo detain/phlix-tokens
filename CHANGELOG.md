@@ -18,6 +18,30 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   comment bytes moved with the comment-only source touches. History above is
   verbatim and stays; the wording law that prevents recurrence now lives in
   the README's "Releasing tokens — the cascade" section.
+- (LW-073) `--accent-text` was declared by colors.css in every theme block but
+  missing from the JS accent roster: `ACCENT_KEYS`/`deriveAccentVars` covered
+  only hover/active/soft/ring/contrast, so an accent override painted the fill
+  roles and left the text role on the theme ramp — broken accent/text pairing
+  on the two-tone theme (daylight ships its text role one ramp step below the
+  fill), and the clearing roster consumers rely on to tear an override down
+  was missing the role the override now must paint. The roster now carries
+  `--accent-text` and
+  `deriveAccentVars` derives it per scheme (dark = the hue itself, byte-equal
+  to both dark blocks' `var(--amber-500)` default; light = bounded darken-to-
+  AA walk, the continuous form of daylight's `var(--amber-800)` law — amber
+  lands at #825813, AA on all four light surfaces; hues that already clear are
+  returned unchanged). `test/tokens.test.ts` now pins `ACCENT_KEYS` against the
+  accent names parsed from colors.css itself, so a new CSS accent role cannot
+  hide from the JS side again.
+- (LW-075) The reduced-motion kill-switch was narrowed to `html`: it alone
+  among the attribute-scoped rules carried an element-type prefix, while
+  `applyTokenAttributes` accepts ANY element and colors.css/density.css scope
+  their blocks by attribute only. A consumer that set `data-reduced-motion` on
+  a subtree root got the attribute and no motion kill. The selector is now
+  `[data-reduced-motion='true'] *` (+ ::before/::after twins), scoped to the
+  carrying subtree like its siblings; the selector-twin guard forbids the
+  `html[` form (a re-narrowing reddens the suite — the pin was written red
+  first at this change's parent).
 
 ### Changed
 - `package.json`: `"sideEffects"` declares only the CSS entries
@@ -47,6 +71,38 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `sourceMappingURL` comment name; the ES bundle is byte-identical.
   `test/build-css.test.mjs` header comment re-anchored to the new filename.
   (LW-032)
+- (LW-073, additive API) `deriveAccentVars(hex, scheme?)` gains the optional
+  second parameter — `type AccentScheme = 'dark' | 'light'`, default 'dark',
+  so every existing 1-argument call site (phlix-ui's picker is the only
+  in-estate caller, via its own ported copy) is source- and byte-compatible.
+  New exports: `THEME_SCHEMES` (theme → scheme, pinned against colors.css's
+  own `color-scheme:` declarations), `LIGHT_TEXT_REFERENCE`, and the
+  `AccentScheme` type, all re-exported from the package root. The package's
+  `deriveAccentVars` has NO live estate importer today — measured: no sibling
+  repo imports the JS maps at all (phlix-ui's accent picker runs its own
+  ported copy in `src/composables/color.ts`) — so the added parameter is
+  break-free by construction. No renames, no
+  removals, and colors.css bytes are untouched — the server
+  `ColorsCssParityTest` digests are unaffected and `dist/tokens.json` is
+  byte-identical in the rebuild (only the JS bundles, three `.d.ts` files and
+  the comment+selector bytes of `dist/css/index.css`/`dist/style.css` moved).
+  `applyTokenAttributes` now derives overrides through `THEME_SCHEMES[theme]`.
+  The reconciliation of phlix-ui's ported copies (`src/composables/color.ts`,
+  `useTheme.ts`) rides the consumer re-pin wave (LW-083) and the v0.2.3
+  TAGGATE (LW-086) — this entry changes no consumer bytes by itself: every
+  estate consumer pins the frozen v0.2.2 tag tarball.
+- (LW-074, guard extension) Step CONTRAST in `test/tokens.test.ts` now
+  enforces every ratio the colors.css comments assert instead of leaving it
+  prose: four more AA pairs × three themes (`--accent-text` on --bg/--surface,
+  `--text-subtle` on --bg/--surface; measured floor 4.80 — full 4.5 threshold
+  pinned, no relaxation), a daylight `--accent-ring` ≥3:1 alpha-composite check
+  (measured 4.19 / 4.57 / 3.97 over bg/surface/surface-2 — the dark blocks
+  assert no ring ratio), and a deliberately-inverted tripwire pinning
+  `--text-faint` below 3:1 (its values are owner-gated: a lift toward
+  readability reddens the suite and rotates the README with it). These
+  assertions are green at the parent BY DESIGN — the shipped values always
+  satisfied the comments; the gap was enforcement, and it is now closed.
+  `test/selector-twins.test.ts` gained the LW-075 `html[` ban.
 
 ### Docs
 - README (LW-027): install snippet `#v0.2.1` → `#v0.2.2`; the ui bullet no
@@ -68,6 +124,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   defined-but-invalid custom property. The roadmap-codes section records the
   extraction-era banner identity (six of eight `src/css` files carry the
   `@phlix/ui` header; spacing and index carry copyright only).
+- README (LW-073/LW-074/LW-075, this wave): "Deriving a custom accent"
+  rewritten for the seven-role set and the scheme branch (default 'dark' keeps
+  every 1-argument caller); the Naming section gained the fill-vs-foreground
+  law for `--accent` (as text it measures 1.82–2.01:1 on daylight — use
+  `--accent-text`) and the decorative-only declaration of `--text-faint`
+  (measured 1.88–2.29:1, below even the non-text floor; the live low-contrast
+  label sites today are the Login/Signup divider labels and the SyncPlay
+  modal placeholder in phlix-ui); the borders-ambient paragraph's guard count
+  rotated to the extended roster; the `style.css` scope description now names
+  the element-scoped `[data-reduced-motion=…]` kill-switch.
 
 ## [0.2.2] - 2026-11-03
 

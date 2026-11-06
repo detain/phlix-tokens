@@ -13,5 +13,5 @@
  *   RN:   import { tokens, resolveTheme } from '@phlix/tokens';
  */
 export { tokens, resolveTheme, type Tokens, } from './tokens.generated.js';
-export { type ThemeName, type Density, THEMES, DENSITIES, DEFAULT_THEME, DEFAULT_DENSITY, DATA_THEME, DATA_DENSITY, DATA_REDUCED_MOTION, type TokenAttributeOptions, type TokenTarget, applyTokenAttributes, } from './themes.js';
-export { type RGB, parseHex, toHex, lighten, darken, rgba, luminance, ACCENT_KEYS, ACCENT_INK_DARK, ACCENT_INK_LIGHT, deriveAccentVars, } from './accent.js';
+export { type ThemeName, type Density, THEMES, DENSITIES, THEME_SCHEMES, DEFAULT_THEME, DEFAULT_DENSITY, DATA_THEME, DATA_DENSITY, DATA_REDUCED_MOTION, type TokenAttributeOptions, type TokenTarget, applyTokenAttributes, } from './themes.js';
+export { type RGB, parseHex, toHex, lighten, darken, rgba, luminance, ACCENT_KEYS, ACCENT_INK_DARK, ACCENT_INK_LIGHT, type AccentScheme, LIGHT_TEXT_REFERENCE, deriveAccentVars, } from './accent.js';

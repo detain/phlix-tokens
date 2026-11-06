@@ -33,6 +33,36 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+/**
+ * LW-073/LW-074: colors.css is the visual SSOT. These tests read it directly
+ * so the JS accent contract and the contrast claims cannot drift from the CSS
+ * again — the bug classes this wave cures are exactly "CSS declares a role the
+ * roster forgot" and "a comment asserts a ratio nothing enforces".
+ */
+const COLORS_CSS = readFileSync(join(__dirname, '..', 'src', 'css', 'colors.css'), 'utf8');
+const COLORS_CSS_STRIPPED = COLORS_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+
+/** Accent custom-property names colors.css DECLARES (line-start declarations
+ *  in comment-stripped CSS; legacy `var(--accent…)` alias bodies never match,
+ *  and neither do the cased `--color-accent…` aliases). */
+function cssAccentNames(): string[] {
+  return [
+    ...new Set([...COLORS_CSS_STRIPPED.matchAll(/^\s*(--accent[a-z-]*)\s*:/gm)].map((m) => m[1])),
+  ].sort();
+}
+
+/** WCAG contrast ratio between two hex colors: (Lmax + 0.05) / (Lmin + 0.05). */
+function contrastRatio(hexA: string, hexB: string): number {
+  const a = parseHex(hexA);
+  const b = parseHex(hexB);
+  if (!a || !b) throw new Error(`unparseable hex in contrast pair: ${hexA} / ${hexB}`);
+  const la = luminance(a);
+  const lb = luminance(b);
+  const hi = Math.max(la, lb);
+  const lo = Math.min(la, lb);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
 /** A minimal in-memory TokenTarget for asserting applyTokenAttributes. */
 function makeTarget(): TokenTarget & {
   attrs: Record<string, string>;
@@ -345,6 +375,81 @@ describe('deriveAccentVars / accent helpers', () => {
     expect(vars['--accent-contrast']).toBe(ACCENT_INK_DARK);
   });
 
+  // LW-073: --accent-text was declared by colors.css in every theme block but
+  // missing from ACCENT_KEYS and deriveAccentVars, so an accent override
+  // painted the fill roles and left the text role on the theme ramp — broken
+  // accent/text pairing on the two-tone theme (daylight), plus a stale roster
+  // for consumers clearing an override. The roster is now pinned to colors.css
+  // itself: a new accent role cannot hide from the JS side again.
+  it('ACCENT_KEYS equals the accent names colors.css declares', () => {
+    expect(cssAccentNames()).toEqual([...ACCENT_KEYS].sort());
+  });
+
+  it('derives --accent-text as the accent itself for the dark scheme', () => {
+    const vars = deriveAccentVars('#f5a524') as Record<string, string>;
+    // The colors.css dark blocks declare `--accent-text: var(--amber-500)` —
+    // the accent hue itself, which measures AA on their bg/surface.
+    expect(vars['--accent-text']).toBe('#f5a524');
+    expect(vars['--accent-text']).toBe(resolveTheme('nocturne')['--accent-text']);
+    expect(vars['--accent-text']).toBe(resolveTheme('midnight')['--accent-text']);
+  });
+
+  it('derives --accent-text darkened-to-AA for the light scheme', () => {
+    const daylight = resolveTheme('daylight');
+    const surfaces = ['--bg', '--surface', '--surface-2', '--surface-3'];
+    // Amber-as-text measures 1.82–2.01:1 on the light surfaces; the colors.css
+    // daylight block answers with a darkened ramp step (`var(--amber-800)`).
+    // The derivation is the continuous form of that law — same relationship
+    // hover/active already have to the ramp: darken the hue until AA clears
+    // against --surface-3, the darkest shipped light background (a dark
+    // foreground's ratio only rises as the background lightens, so clearing
+    // there clears bg/surface/surface-2 and white too).
+    const amber = deriveAccentVars('#f5a524', 'light') as Record<string, string>;
+    for (const s of surfaces) {
+      expect(
+        contrastRatio(amber['--accent-text'], daylight[s]),
+        `derived amber on ${s}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(amber['--accent']).toBe('#f5a524'); // the fill roles stay scheme-independent
+    // Hues that already clear AA are returned byte-identical (no-op darkening):
+    expect((deriveAccentVars('#924d10', 'light') as Record<string, string>)['--accent-text']).toBe('#924d10');
+    expect((deriveAccentVars('#000000', 'light') as Record<string, string>)['--accent-text']).toBe('#000000');
+    // Pale, mid and off-white hues all clear after the bounded walk:
+    for (const h of ['#ffffff', '#ffedcc', '#ef5e57', '#c7d6ff', '#e8dcc6', '#2a1804']) {
+      const d = deriveAccentVars(h, 'light') as Record<string, string>;
+      for (const s of surfaces) {
+        expect(
+          contrastRatio(d['--accent-text'], daylight[s]),
+          `${h} derived on ${s}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it('keeps the one-argument call shape on the dark-scheme default', () => {
+    // Existing consumers call deriveAccentVars(hex) — the default must equal
+    // the explicit dark branch, and the returned keys must be the roster.
+    expect(deriveAccentVars('#3366ff')).toEqual(deriveAccentVars('#3366ff', 'dark'));
+    expect(Object.keys(deriveAccentVars('#3366ff') as Record<string, string>)).toHaveLength(
+      ACCENT_KEYS.length,
+    );
+  });
+
+  it('THEME_SCHEMES matches the color-scheme each colors.css block declares', async () => {
+    // Dynamic read so the failure names the missing export — a static import
+    // of a not-yet-existing binding would break the file's whole link step.
+    const mod = (await import('../src/index')) as { THEME_SCHEMES?: Record<string, string> };
+    expect(mod.THEME_SCHEMES, 'THEME_SCHEMES is not exported').toBeDefined();
+    const declared: Record<string, string> = {};
+    for (const m of COLORS_CSS_STRIPPED.matchAll(/\[data-theme='(\w+)'\][^{]*\{([^}]*)\}/g)) {
+      const cs = /color-scheme:\s*(\w+)/.exec(m[2]);
+      if (cs) declared[m[1]] = cs[1];
+    }
+    expect(Object.keys(declared).sort()).toEqual([...THEMES].sort());
+    expect({ ...mod.THEME_SCHEMES }).toEqual(declared);
+  });
+
   it('returns null for unparseable input', () => {
     expect(deriveAccentVars('nope')).toBeNull();
     expect(deriveAccentVars('#12')).toBeNull();
@@ -404,6 +509,27 @@ describe('applyTokenAttributes', () => {
     expect(t.props['--accent']).toBe('#3366ff');
     applyTokenAttributes(t, { theme: 'nocturne', density: 'comfortable', accent: null });
     expect(t.props['--accent']).toBeUndefined();
+    // LW-073 widened the clearing roster to ACCENT_KEYS — --accent-text must
+    // never survive an override teardown as a stale inline property.
+    expect(t.props['--accent-text']).toBeUndefined();
+  });
+
+  it('derives a scheme-correct --accent-text when overriding the accent (LW-073)', () => {
+    // The two-tone gap this cures: on daylight the text role lives a full ramp
+    // below the fill, so the override must derive it for the target theme's
+    // scheme instead of leaving the theme's amber-800 under a foreign fill.
+    const t = makeTarget();
+    applyTokenAttributes(t, { theme: 'daylight', density: 'comfortable', accent: '#3366ff' });
+    expect(t.props['--accent']).toBe('#3366ff');
+    expect(typeof t.props['--accent-text'], 'override must paint the text role too').toBe('string');
+    expect(t.props['--accent-text']).toBe(
+      (deriveAccentVars('#3366ff', 'light') as Record<string, string>)['--accent-text'],
+    );
+    expect(t.props['--accent-text']).not.toBe('#3366ff');
+
+    const d = makeTarget();
+    applyTokenAttributes(d, { theme: 'nocturne', density: 'comfortable', accent: '#3366ff' });
+    expect(d.props['--accent-text']).toBe('#3366ff'); // dark themes use the hue itself
   });
 
   it('clears accent vars when the hex is unparseable', () => {
@@ -468,32 +594,32 @@ describe('theme parity', () => {
 // foreground/background pairs from the RESOLVED theme values and assert AA
 // thresholds. (The relative-luminance formula is identical across
 // WCAG 2.0–2.2, so the thresholds and claims carry across all three
-// versions.) Uses the exported `parseHex` + `luminance`. A deliberately
-// low-contrast pair (e.g. swapping --text for --text-faint) would trip these.
+// versions.) Uses the exported `parseHex` + `luminance` (see module-scope
+// contrastRatio). A deliberately low-contrast pair (e.g. swapping --text for
+// --text-faint) would trip these.
 //
-// Measured ratios (current values, computed at authoring time 2026-06-28):
+// Measured ratios (original pairs computed at authoring time 2026-06-28;
+// extended 2026-11-06 under LW-074 with every pair whose ratio colors.css
+// only asserted in a comment):
 //   theme      text/bg  text/surface  on-accent/accent  muted/surface
 //   nocturne    16.87      15.78           8.36              8.21
 //   daylight    14.18      15.68           8.36              6.28
 //   midnight    16.93      16.11           8.36              7.51
-// All pairs clear AA 4.5:1 with margin — including --text-muted on --surface
-// (lowest = daylight 6.28), so the full 4.5:1 threshold is asserted for muted
-// (no large-text 3:1 relaxation required).
+//   theme      accent-text/bg  accent-text/surface  subtle/bg  subtle/surface
+//   nocturne        9.70              9.07             5.36        5.01
+//   daylight        5.68              6.28             4.91        5.43
+//   midnight       10.29              9.79             5.05        4.80
+// All eight AA pairs × three themes clear 4.5:1 with margin (lowest =
+// --text-subtle on --surface, midnight 4.80), so the full threshold is
+// asserted everywhere — no large-text 3:1 relaxation required. Daylight's
+// --accent-ring composites to 4.19 / 4.57 / 3.97 over its three light
+// surfaces (≥3:1, its own it() below; the dark blocks assert no ring ratio).
+// --text-faint measures 1.88–2.29:1 — it is NOT an AA pair: it is pinned with
+// deliberately-inverted assertions (ghost-tier by law; see its it() and the
+// README's decorative-only declaration).
 // ---------------------------------------------------------------------------
 describe('contrast', () => {
   const AA = 4.5;
-
-  /** WCAG contrast ratio between two hex colors: (Lmax + 0.05) / (Lmin + 0.05). */
-  function contrastRatio(hexA: string, hexB: string): number {
-    const a = parseHex(hexA);
-    const b = parseHex(hexB);
-    if (!a || !b) throw new Error(`unparseable hex in contrast pair: ${hexA} / ${hexB}`);
-    const la = luminance(a);
-    const lb = luminance(b);
-    const hi = Math.max(la, lb);
-    const lo = Math.min(la, lb);
-    return (hi + 0.05) / (lo + 0.05);
-  }
 
   it('contrastRatio computes the canonical extremes', () => {
     // black on white is the maximal 21:1
@@ -511,6 +637,8 @@ describe('contrast', () => {
       const accent = m['--accent'];
       const onAccent = m['--text-on-accent'];
       const muted = m['--text-muted'];
+      const accentText = m['--accent-text'];
+      const subtle = m['--text-subtle'];
 
       // --text on --bg and on --surface
       expect(
@@ -533,8 +661,82 @@ describe('contrast', () => {
         contrastRatio(muted, surface),
         `${t}: --text-muted on --surface`,
       ).toBeGreaterThanOrEqual(AA);
+
+      // --accent-text on --bg/--surface — LW-074: every theme block of
+      // colors.css comments an AA claim for this token; the guard now
+      // enforces the promise instead of leaving it prose.
+      expect(
+        contrastRatio(accentText, bg),
+        `${t}: --accent-text on --bg`,
+      ).toBeGreaterThanOrEqual(AA);
+      expect(
+        contrastRatio(accentText, surface),
+        `${t}: --accent-text on --surface`,
+      ).toBeGreaterThanOrEqual(AA);
+
+      // --text-subtle on --bg/--surface — LW-074: measured 4.80–5.43, clears
+      // AA on every shipped surface, so the full threshold is pinned.
+      expect(
+        contrastRatio(subtle, bg),
+        `${t}: --text-subtle on --bg`,
+      ).toBeGreaterThanOrEqual(AA);
+      expect(
+        contrastRatio(subtle, surface),
+        `${t}: --text-subtle on --surface`,
+      ).toBeGreaterThanOrEqual(AA);
     });
   }
+
+  it('daylight --accent-ring composites to ≥3:1 on the light surfaces (LW-074)', () => {
+    // colors.css:102's comment claims "≥3:1 focus ring on light bg/surface/
+    // surface-2"; nothing ran that math. What the eye sees through a
+    // translucent ring is the alpha composite, so the ratio is measured on
+    // the composite, not the raw rgba.
+    const m = resolveTheme('daylight');
+    const ring = /^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/.exec(m['--accent-ring']);
+    if (!ring) throw new Error(`daylight --accent-ring is not parseable rgba: ${m['--accent-ring']}`);
+    const r = Number(ring[1]);
+    const g = Number(ring[2]);
+    const b = Number(ring[3]);
+    const a = Number(ring[4]);
+    for (const key of ['--bg', '--surface', '--surface-2']) {
+      const surfaceHex = m[key];
+      const s = parseHex(surfaceHex);
+      if (!s) throw new Error(`unparseable daylight ${key}: ${surfaceHex}`);
+      const composite = toHex({
+        r: a * r + (1 - a) * s.r,
+        g: a * g + (1 - a) * s.g,
+        b: a * b + (1 - a) * s.b,
+      });
+      expect(
+        contrastRatio(composite, surfaceHex),
+        `daylight --accent-ring over ${key}`,
+      ).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('pins --text-faint below 3:1 as the decorative-only tripwire (LW-074)', () => {
+    // colors.css documents --text-faint as the ghost tier (measured
+    // 1.88–2.29:1 on bg/surface — below AA AND below the 3:1 non-text floor).
+    // The README therefore declares it decorative-only. These assertions are
+    // INVERTED on purpose: if anyone lifts the faint values toward
+    // readability, this test reddens so the README paragraph and the live
+    // label sites (Login/Signup divider labels, SyncPlay placeholders) must
+    // rotate in the same commit. A value move toward AA is an owner-gated
+    // cascade (server ColorsCssParityTest pins colors.css bytes), never a
+    // silent drive-by.
+    for (const t of THEMES) {
+      const m = resolveTheme(t);
+      expect(
+        contrastRatio(m['--text-faint'], m['--bg']),
+        `${t}: --text-faint on --bg stays ghost-tier`,
+      ).toBeLessThan(3);
+      expect(
+        contrastRatio(m['--text-faint'], m['--surface']),
+        `${t}: --text-faint on --surface stays ghost-tier`,
+      ).toBeLessThan(3);
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

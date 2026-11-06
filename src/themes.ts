@@ -9,7 +9,7 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-import { deriveAccentVars, ACCENT_KEYS } from './accent.js';
+import { deriveAccentVars, ACCENT_KEYS, type AccentScheme } from './accent.js';
 
 export type ThemeName = 'nocturne' | 'daylight' | 'midnight';
 export type Density = 'comfortable' | 'compact';
@@ -19,6 +19,21 @@ export const THEMES: readonly ThemeName[] = ['nocturne', 'daylight', 'midnight']
 
 /** All selectable densities, in canonical order. */
 export const DENSITIES: readonly Density[] = ['comfortable', 'compact'] as const;
+
+/**
+ * Which accent-text law each theme follows: 'dark' themes render accent text
+ * with the accent hue itself, 'light' themes must darken it to clear AA on
+ * their light surfaces (colors.css). This map mirrors each `[data-theme]`
+ * block's own `color-scheme:` declaration — test/tokens.test.ts pins that
+ * equality against the parsed colors.css, so a block renamed or re-schemed
+ * without updating this map reddens the suite (LW-073). applyTokenAttributes
+ * uses it to pick the derivation branch for an accent override.
+ */
+export const THEME_SCHEMES: Record<ThemeName, AccentScheme> = {
+  nocturne: 'dark',
+  daylight: 'light',
+  midnight: 'dark',
+};
 
 /** First-time / fallback theme — Nocturne (the dark default `:root` resolves to). */
 export const DEFAULT_THEME: ThemeName = 'nocturne';
@@ -77,7 +92,10 @@ export function applyTokenAttributes(
   if (opts.reducedMotion) target.setAttribute(DATA_REDUCED_MOTION, 'true');
   else target.removeAttribute(DATA_REDUCED_MOTION);
 
-  const vars = opts.accent ? deriveAccentVars(opts.accent) : null;
+  // LW-073: an override re-paints the whole accent role set INCLUDING the
+  // text role, which follows the target theme's scheme (daylight darkens it
+  // to AA; dark themes keep the hue itself).
+  const vars = opts.accent ? deriveAccentVars(opts.accent, THEME_SCHEMES[opts.theme]) : null;
   if (vars) {
     for (const [k, v] of Object.entries(vars)) target.style.setProperty(k, v);
   } else {

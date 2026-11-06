@@ -72,9 +72,16 @@ describe('theme/density/motion attribute twins (themes.ts ↔ src/css)', () => {
     }
     // The reduced-motion twin is the pairing this batch exists for: the JS
     // constant forces the string 'true' (themes.ts applyTokenAttributes) and
-    // only `html[data-reduced-motion='true']` activates the CSS kill-switch.
+    // the attribute selector activates the CSS kill-switch. LW-075 made the
+    // rule element-scoped like the [data-theme='…']/[data-density='…'] blocks
+    // it sits beside — the kill-switch applies to the subtree carrying the
+    // attribute, not only when the attribute happens to land on <html>. The
+    // html-prefix ban below is the tooth: re-narrowing reddens this file.
     expect(code, `[${DATA_REDUCED_MOTION}='true'] selector missing`).toContain(
       `[${DATA_REDUCED_MOTION}='true']`,
+    );
+    expect(code, 'reduced-motion kill-switch must not be narrowed to <html>').not.toContain(
+      `html[${DATA_REDUCED_MOTION}`,
     );
   });
 
