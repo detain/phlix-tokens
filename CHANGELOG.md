@@ -42,6 +42,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   carrying subtree like its siblings; the selector-twin guard forbids the
   `html[` form (a re-narrowing reddens the suite — the pin was written red
   first at this change's parent).
+- (LW-076) The typography header comment's `@font-face` pointer named
+  `src/assets/fonts/fonts.css` — a path that has never existed in this repo
+  (`git log --all -- src/assets` is empty). The real declarations live in the
+  app shell at `phlix-ui/src/assets/fonts/fonts.css`, which is what the
+  README's Fonts section had always stated correctly. The phantom was not
+  inert: `scripts/build-css.mjs` copies `src/css` verbatim, so the wrong path
+  rode into `dist/css/typography.css`, into the inlined `dist/style.css`, and
+  from there into every vendored consumer copy. The comment now names the
+  app-shell coordinate. No value bytes moved: the generated artifacts,
+  `docs/token-reference.md`, and `colors.css` are all byte-held, so the
+  server `ColorsCssParityTest` pin is unaffected — and because consumers
+  resolve this package by tag, the corrected wording reaches vendored copies
+  only when the next tag/pin wave rotates them.
 
 ### Changed
 - `package.json`: `"sideEffects"` declares only the CSS entries

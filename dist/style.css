@@ -242,10 +242,11 @@
      · Hanken Grotesk (variable wght 100–900)              — UI / BODY
      · JetBrains Mono (variable wght 400–800)              — timecode / numerals
 
-   The @font-face declarations live in src/assets/fonts/fonts.css (shipped as a
-   separate, cacheable stylesheet — see that file for why). This file holds only
-   the font-family tokens, scale, tracking/leading and utilities that reference
-   those faces, so the bundled style.css stays free of inlined font bytes.
+   The @font-face declarations live in the app shell, at
+   phlix-ui/src/assets/fonts/fonts.css (shipped there as a separate, cacheable
+   stylesheet — see that file for why). This file holds only the font-family
+   tokens, scale, tracking/leading and utilities that reference those faces, so
+   the bundled style.css stays free of inlined font bytes.
  * @copyright 2026 Joe Huss <detain@interserver.net>
    ============================================================================ */
 
