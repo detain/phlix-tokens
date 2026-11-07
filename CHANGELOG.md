@@ -109,7 +109,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   prose: four more AA pairs × three themes (`--accent-text` on --bg/--surface,
   `--text-subtle` on --bg/--surface; measured floor 4.80 — full 4.5 threshold
   pinned, no relaxation), a daylight `--accent-ring` ≥3:1 alpha-composite check
-  (measured 4.19 / 4.57 / 3.97 over bg/surface/surface-2 — the dark blocks
+  (measured 4.19 / 4.57 / 3.96 over bg/surface/surface-2 — the dark blocks
   assert no ring ratio), and a deliberately-inverted tripwire pinning
   `--text-faint` below 3:1 (its values are owner-gated: a lift toward
   readability reddens the suite and rotates the README with it). These

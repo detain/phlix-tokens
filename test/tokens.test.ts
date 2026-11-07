@@ -612,7 +612,7 @@ describe('theme parity', () => {
 // All eight AA pairs × three themes clear 4.5:1 with margin (lowest =
 // --text-subtle on --surface, midnight 4.80), so the full threshold is
 // asserted everywhere — no large-text 3:1 relaxation required. Daylight's
-// --accent-ring composites to 4.19 / 4.57 / 3.97 over its three light
+// --accent-ring composites to 4.19 / 4.57 / 3.96 over its three light
 // surfaces (≥3:1, its own it() below; the dark blocks assert no ring ratio).
 // --text-faint measures 1.88–2.29:1 — it is NOT an AA pair: it is pinned with
 // deliberately-inverted assertions (ghost-tier by law; see its it() and the
