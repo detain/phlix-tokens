@@ -6,6 +6,30 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-11-06
+
+### Changed
+- Version bump 0.2.2 → 0.2.3 (`package.json` + lockfile, 3 version fields) and
+  the README install-snippet rotation (LW-027 cut law). The release build is
+  byte-current against the committed `dist/` — clean CI-faithful legs at this
+  tip (`npm ci`; `npm run generate` no-op plus the vacuity probe restoring
+  byte-for-byte; lint; typecheck; build with `git diff --exit-code -- dist`
+  clean; `npm run generate:reference` no-op; full suite 8 files / 171 tests) —
+  and the bump stamps no bytes into any artifact. Honest artifact delta for the
+  tag range v0.2.2 → v0.2.3 per the LW-028 wording law: the value-carrying
+  `dist/tokens.json` is byte-identical and `src/css/colors.css` never moved in
+  the range (no token value changed; the server `ColorsCssParityTest` sha pin
+  is unaffected), while `dist/style.css` and `dist/css/index.css` move in both
+  comment bytes and selector shape (the LW-075 kill-switch re-scope to the
+  `[data-reduced-motion='true'] *` family), `dist/css/typography.css` moves in
+  the LW-076 `@font-face` pointer comment, the JS bundles move with the LW-073
+  roster and scheme-branch derivation (and LW-032's rename
+  `dist/phlix-tokens.umd.cjs` → `dist/phlix-tokens.cjs`), and the `.d.ts` +
+  `.map` bytes ride with the docblocks and embedded sources they carry. This
+  release books the review-round cohorts LW-027..LW-032 and LW-073..LW-076
+  recorded below, plus the w12L9 ring-figure forward-fix (comment + unreleased
+  prose only, pin-free).
+
 ### Fixed
 - Forward correction (LW-028): the 0.2.2 header bullet's claim "zero artifact
   bytes moved" was imprecise at the byte level. Across

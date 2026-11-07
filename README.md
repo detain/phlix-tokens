@@ -40,12 +40,13 @@ zero drift between the CSS and JS/JSON forms shipped from here.
 ## Install
 
 ```sh
-npm i github:detain/phlix-tokens#v0.2.2
+npm i github:detain/phlix-tokens#v0.2.3
 ```
 
 Pin a tag: `phlix-tokens` is consumed by tag-pinned tarball across the estate
 (ui pins `#v0.2.1`; server vendors the `v0.2.2` archive and byte-pins
-`src/css/colors.css` — both as measured at the 2026-11-06 tree), and the bare
+`src/css/colors.css` — both as measured at the 2026-11-06 tree; the v0.2.3
+re-pin waves rotate them in the coordinated order below), and the bare
 `github:detain/phlix-tokens` form resolves
 the moving default branch. The npm-registry name is not published.
 
@@ -157,7 +158,8 @@ which daylight ships `var(--amber-800)` under its amber-500 fill, where the
 raw hue measures only 1.82–2.01:1 as text. `THEME_SCHEMES` maps each theme to
 its branch (pinned against colors.css's own `color-scheme:` declarations), and
 `applyTokenAttributes` consults it so an accent override re-paints the text
-role with the fill instead of leaving it on the theme ramp.
+role per the target scheme's law (dark: the hue itself; light: the AA-darkened
+step) instead of leaving it on the theme ramp.
 
 ## Naming
 
