@@ -47,8 +47,8 @@
  * The @copyright line below is HAND-MAINTAINED: `npm run copyright`'s walk()
  * covers only src/ and test/, so nothing under scripts/ is ever rewritten
  * automatically. scripts/lib/copyright.mjs holds the authoritative list of which
- * files under scripts/ carry a header and why (this file and that one do; the
- * three CLI entry points and tokens.d.mts do not) — update that list if you
+ * files under scripts/ carry a header and why (this file, that one and scripts/lib/token-reference.mjs do; the
+ * four CLI entry points and tokens.d.mts do not) — update that list if you
  * change this line.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>

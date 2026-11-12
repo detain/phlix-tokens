@@ -8,7 +8,7 @@
 
 # Token reference
 
-140 distinct custom properties. Values are the resolved ones (every `var(--ref)` is collapsed), exactly as `resolveTheme()` and the CSS ship them. Sections mirror the shape of the generated map (`tokens.base`, per-theme, per-family views), so a property may be listed more than once — always with the same value. Which of these plugin themes may override is governed by the server's `ThemeTokenAllowlist` (cross-repo contract; see README → Naming).
+140 distinct custom properties. Values are the resolved ones (every `var(--ref)` is collapsed), exactly as `resolveTheme()` and the CSS ship them. Sections mirror the shape of the generated map (`tokens.base`, per-theme, per-family views), so a property may be listed more than once — with the same value wherever one scope applies (the `:root` section holds the Nocturne default; the per-theme and per-density sections show each variant’s own resolved value). Which of these plugin themes may override is governed by the server's `ThemeTokenAllowlist` (cross-repo contract; see README → Naming).
 
 ## Color and geometry — resolved `:root` defaults
 _The full resolved map for a page with no `data-*` attributes set (the `:root` blocks fold the Nocturne defaults); the per-theme and per-family sections below regroup the same names. Theme-scoped `--shadow-*`/`--glow-*` and the `--color-*` legacy aliases are re-declared inside every `[data-theme=…]` block (CSS var() substitution resolves on the same element)._
@@ -157,7 +157,7 @@ _The full resolved map for a page with no `data-*` attributes set (the `:root` b
 | `--leading-relaxed` | `1.7` |
 
 ## Color — per-theme overrides
-_From the `[data-theme=…]` blocks in `src/css/colors.css`; columns in canonical theme order._
+_Every theme’s full resolved value (inherited `:root` values included) from the `[data-theme=…]` blocks in `src/css/colors.css`; columns in canonical theme order._
 
 | token | nocturne | daylight | midnight |
 | --- | --- | --- | --- |

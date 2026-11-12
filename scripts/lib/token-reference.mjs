@@ -13,9 +13,9 @@
  *
  * Ordering law (stated in the rendered header too): sections follow the
  * generated map's canonical family key order (identical to dist/tokens.json);
- * rows preserve declaration order within each source block; theme-set- and
- * density-set-keyed families collapse to one row per token with columns in
- * canonical theme/density order.
+ * rows preserve declaration order within each source block; theme- and
+ * density-keyed families collapse to one row per token, columns in
+ * canonical order.
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
@@ -131,7 +131,7 @@ export function renderReference(tokens) {
     `${distinctPropertyCount(tokens)} distinct custom properties. ` +
       'Values are the resolved ones (every `var(--ref)` is collapsed), exactly as `resolveTheme()` and the CSS ship them. ' +
       'Sections mirror the shape of the generated map (`tokens.base`, per-theme, per-family views), so a property may be listed more than once — ' +
-      'always with the same value. ' +
+      'with the same value wherever one scope applies (the `:root` section holds the Nocturne default; the per-theme and per-density sections show each variant’s own resolved value). ' +
       'Which of these plugin themes may override is governed by the server\'s `ThemeTokenAllowlist` (cross-repo contract; see README → Naming).',
   );
 
@@ -151,7 +151,7 @@ export function renderReference(tokens) {
       emittedThemeSection = true;
       lines.push('');
       lines.push('## Color — per-theme overrides');
-      lines.push('_From the `[data-theme=…]` blocks in `src/css/colors.css`; columns in canonical theme order._');
+      lines.push('_Every theme’s full resolved value (inherited `:root` values included) from the `[data-theme=…]` blocks in `src/css/colors.css`; columns in canonical theme order._');
       lines.push('');
       lines.push(`| token | ${THEME_SECTION_ORDER.join(' | ')} |`);
       lines.push(`| --- | ${THEME_SECTION_ORDER.map(() => '---').join(' | ')} |`);
