@@ -291,7 +291,7 @@ and this package ships **no border-width tokens** — every consumer hardcodes
 1.4% of 1080p height against the classic viewing-distance minimum of ~2%
 (~21.6px), and hairlines thin out under 4K upscaling. Those surfaces must scale
 the root font-size rather than expect a different token set. phlix-ui already
-ships one such consumer-side layer: `phlix-ui/src/tokens/tv.css` is a
+ships a related consumer-side layer: `phlix-ui/src/tokens/tv.css` is a
 consumer-scoped, non-frozen `[data-tv]` override (larger `--control-*`,
 `--field-pad-y` and `--stack-gap` values plus a plain-`:focus` ring) that
 re-values existing density names and adds none — it lives in ui, outside this
