@@ -54,7 +54,7 @@ as measured 2026-11-12, the server vendors the `v0.2.3` tag archive and
 byte-pins `src/css/colors.css`, while ui still pins `#v0.2.1` — the ui tag-pin
 bump is the last leg of the coordinated release order below.
 
-## Usage — web (CSS variables)
+## Usage — web: CSS variables (custom properties)
 
 A full generated enumeration — every custom property with its resolved value
 (theme- and density-keyed families side by side) — lives in
@@ -98,7 +98,7 @@ import '@phlix/tokens/css/spacing.css';
 ## Usage — non-CSS consumers (React Native / Roku, resolved values)
 
 Mobile and Roku do not depend on this package yet (see the adoption list above);
-when they migrate, this is the path. There are no CSS variables in React
+when they migrate, this is the path. There are no CSS custom properties in React
 Native, so read the **flat resolved map** for a theme. Every `var(--ref)` is
 already resolved to a concrete value; `clamp()` / `rgba()` strings are
 preserved as-is (they are CSS functional notation, not parseable numbers).
@@ -238,10 +238,21 @@ shadow, typography; spacing and index carry only the copyright line) — the
 extraction-era provenance of the 0.1.0 copy-out, not a claim that these files
 live upstream.
 
+**Review-ledger codes.** `CHANGELOG.md`, commit subjects and some
+`test/` comments carry a second code family: `LW-###` (e.g. `LW-073`,
+`LW-027..LW-032`), `w<n>L<n>` (e.g. `w12L9`), `W-min###` and `TOK-S#`. These
+are not roadmap rounds: they are item and lane IDs from the estate's external
+review ledger and fix-program register — `LW-###` numbers a ledger item, the
+others name the review wave/lane or fix-plan step that carried it. They live
+outside this repo, nothing here is keyed on them, and no document in this repo
+defines them; read them as provenance pointers ("which review finding drove
+this change"), never as scope for current work.
+
 **`--font-*` and `--fw-*` are one scale written twice.** `--font-normal` /
 `--font-medium` / `--font-semibold` / `--font-bold` are canonical; the
 `--fw-regular` / `--fw-medium` / `--fw-semibold` / `--fw-bold` family
-(`typography.css:46-49`) is a legacy alias set declaring `var(--font-*)`
+(the `/* Weights … */` block of `typography.css`, each alias sharing a line
+with its canonical twin) is a legacy alias set declaring `var(--font-*)`
 values. Prefer `--font-*` in new code. Retiring `--fw-*` is logged as intent
 on 2026-10-30 and rides the first deliberate breaking CSS-surface release —
 the alias bytes live in `typography.css`, which is copied verbatim into the
@@ -275,8 +286,9 @@ the root font-size rather than expect a different token set. A `--border-w`
 scale (plus a `data-density='tv'` step) is cure-spec'd in this repo's review
 fixlog for a deliberate release — new names are frozen-surface changes, so they
 never ride a docs patch. One web-engine floor is already inside the scale: the
-six top type steps (`--text-xl` … `--text-hero`, `typography.css:38-43`) are
-`clamp()` expressions — the package's only modern CSS construct — and need
+six top type steps (`--text-xl` … `--text-hero`, the tail of the
+`/* Fluid type scale … */` block in `typography.css`) are `clamp()`
+expressions — the package's only modern CSS construct — and need
 Chrome 79 / Safari 13.1 or newer (2020). This package declares no browser floor
 of its own; the tizen contract floor (Chromium ≥ 85,
 `phlix-tizen-client/docs/runtime-floor.md`) already clears it. An older engine

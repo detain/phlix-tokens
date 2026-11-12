@@ -13,6 +13,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   byte-identical.
 - `scripts/add-copyright.mjs` title line uses an em dash like its sibling
   scripts (TOK-S4); comment-only, no behavior or artifact change.
+- README Install paragraph: consumer-pin narration replaced by manifest pointer +
+  one dated reading (TOK-S5); doc-only, no artifact change.
+- README citations, terminology and codes (TOK-S6): `typography.css` line cites
+  rotated to name anchors (the `/* Fluid type scale … */` and `/* Weights … */`
+  blocks); the web-usage heading reads "CSS variables (custom properties)" and
+  the body single-sources "custom properties"; a new "Review-ledger codes"
+  paragraph explains the `LW-###` / `w<n>L<n>` family beside the roadmap-codes
+  explainer. Doc-only, no artifact change.
 
 ## [0.2.3] - 2026-11-06
 
