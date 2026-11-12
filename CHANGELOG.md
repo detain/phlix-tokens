@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- `resolveTheme()` docblock + README disclose the comfortable-density baseline
+  and the compact spread recipe (TOK-S2); doc-only — `dist/tokens.generated.d.ts`
+  and the two `.map` files move, bundles/`style.css`/`css/*`/`tokens.json`
+  byte-identical.
+- `scripts/add-copyright.mjs` title line uses an em dash like its sibling
+  scripts (TOK-S4); comment-only, no behavior or artifact change.
+
 ## [0.2.3] - 2026-11-06
 
 ### Changed

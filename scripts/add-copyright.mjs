@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * add-copyright.mjs - Idempotent copyright-header injector for phlix-tokens.
+ * add-copyright.mjs — Idempotent copyright-header injector for phlix-tokens.
  * Re-run produces zero diff when all files already have the header.
  *
  * Usage: `npm run copyright` (or `node scripts/add-copyright.mjs`).
