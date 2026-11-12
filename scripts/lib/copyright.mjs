@@ -16,23 +16,30 @@
  * all, so there is no guard left to be wrong.
  *
  * Header note (round-2 review of PR #11, finding 5; refreshed in PR #12 when a
- * second library appeared). THIS COMMENT IS THE ONLY RECORD OF THE INTENDED
+ * second library appeared, and again in review round 2026-11-11 (TOK-S1) after
+ * the v0.2.2 docs generator added a third library and a fourth CLI entry point
+ * without updating this list). THIS COMMENT IS THE ONLY RECORD OF THE INTENDED
  * HEADER STATE UNDER scripts/, so it must be corrected by hand whenever that
  * state changes — nothing enforces it mechanically, because `npm run copyright`'s
  * walk() covers only src/ and test/ (see the "---- Main ----" section of
  * scripts/add-copyright.mjs).
  *
- * Intended state, as of PR #12 — the rule is "the pure, side-effect-free,
- * unit-tested modules under scripts/lib/ carry the header; the CLI entry points
- * do not":
- *   CARRY a @copyright line (2): scripts/lib/copyright.mjs (this file),
+ * Intended state, as of review round 2026-11-11 (TOK-S1) — the rule is "the
+ * pure, side-effect-free, unit-tested modules under scripts/lib/ carry the
+ * header; the CLI entry points (and the type sidecar) do not":
+ *   CARRY a @copyright line (3): scripts/lib/copyright.mjs (this file),
+ *                                scripts/lib/token-reference.mjs,
  *                                scripts/lib/tokens.mjs
- *   NONE (4):                    scripts/add-copyright.mjs,
+ *   NONE (5):                    scripts/add-copyright.mjs,
  *                                scripts/build-css.mjs,
+ *                                scripts/generate-token-reference.mjs,
  *                                scripts/generate-tokens.mjs,
  *                                scripts/lib/tokens.d.mts
  * (`grep -rln '@copyright' scripts/` is the one-command check; it must list
- * exactly the two files above.)
+ * exactly the three files above, in any order.)
+ * scripts/generate-token-reference.mjs shipped in v0.2.2 carrying a header in
+ * breach of this rule; TOK-S1 stripped it to match its three CLI siblings
+ * rather than carving out an exemption.
  *
  * That asymmetry is deliberate, not an oversight: these headers are kept IN SYNC
  * BY HAND. If you add a module under scripts/lib/, give it the header and add it

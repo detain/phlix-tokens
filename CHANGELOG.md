@@ -28,6 +28,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   from the fg hex" (daylight breaks the nocturne/midnight fg==bg RGB pattern);
   the review-ledger paragraph names `src/*.ts` (so the shipped `dist/*.d.ts`)
   and `vite.config.ts` as `LW-###` carriers. Doc-only, no artifact change.
+- README prose restructuring (TOK-S10): opening drift-gate carve-out split into its own paragraph; release-order paragraph now says it quotes no *live* pin (the `5500d70b` citation is historical narrative). Doc-only, no artifact change.
+- Copyright census refresh (TOK-S1): the hand-kept header ledger in
+  `scripts/lib/copyright.mjs` now lists 3 carriers (adds
+  `scripts/lib/token-reference.mjs`) and 5 non-carriers (adds
+  `scripts/generate-token-reference.mjs`, whose stray `@copyright` line is
+  stripped to match its CLI siblings); `.claude/rules/scripts-pure-lib.md`
+  enumerations name the docs-generator pure/CLI pair and its test.
+  Comment/doc-only, no behavior or artifact change.
 
 ## [0.2.3] - 2026-11-06
 

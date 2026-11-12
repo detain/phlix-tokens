@@ -19,7 +19,6 @@
  *
  * The pure rendering logic lives in ./lib/token-reference.mjs so it can be
  * unit-tested without importing (and therefore running) this file.
- * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
