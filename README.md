@@ -216,7 +216,14 @@ accent fill. The companion law is fill-vs-foreground: `--accent` itself is a
 **fill** — as text it measures 1.82–2.01:1 on daylight's surfaces, so never
 paint text with `--accent` directly; take accent-colored text from
 `--accent-text` (darkened to AA on light schemes; see "Deriving a custom
-accent") and ink-on-fill from `--text-on-accent`. The `--color-*` legacy set is pure aliases of the canonical names,
+accent") and ink-on-fill from `--text-on-accent`. **State bg tints are
+authored values per theme; never re-derive them from the fg hex.**
+`--error-bg` / `--success-bg` / `--warning-bg` / `--info-bg` share their
+foreground's RGB on nocturne and midnight (alpha 0.14 / 0.16), but daylight
+breaks that hue law: each tint carries a lighter RGB than its foreground
+(`--error: #b53832` against `--error-bg: rgba(195, 60, 54, 0.10)`), so a
+consumer computing `rgba(fg, α)` paints the wrong tint on light schemes — read
+the `-bg` token. The `--color-*` legacy set is pure aliases of the canonical names,
 kept for un-migrated consumers — never add new tokens there. The aliases
 remain until a coordinated breaking wave retires them; removal is a
 minor-major event (the server's allowlist and transcription parse these names,
@@ -239,7 +246,8 @@ extraction-era provenance of the 0.1.0 copy-out, not a claim that these files
 live upstream.
 
 **Review-ledger codes.** `CHANGELOG.md`, commit subjects and some
-`test/` comments carry a second code family: `LW-###` (e.g. `LW-073`,
+`src/*.ts` (so also the shipped `dist/*.d.ts`), `test/` and `vite.config.ts`
+comments carry a second code family: `LW-###` (e.g. `LW-073`,
 `LW-027..LW-032`), `w<n>L<n>` (e.g. `w12L9`), `W-min###` and `TOK-S#`. These
 are not roadmap rounds: they are item and lane IDs from the estate's external
 review ledger and fix-program register — `LW-###` numbers a ledger item, the
@@ -282,7 +290,13 @@ and this package ships **no border-width tokens** — every consumer hardcodes
 `1px`. On 10-foot TV surfaces (the tizen and windows embeds) 15px is roughly
 1.4% of 1080p height against the classic viewing-distance minimum of ~2%
 (~21.6px), and hairlines thin out under 4K upscaling. Those surfaces must scale
-the root font-size rather than expect a different token set. A `--border-w`
+the root font-size rather than expect a different token set. phlix-ui already
+ships one such consumer-side layer: `phlix-ui/src/tokens/tv.css` is a
+consumer-scoped, non-frozen `[data-tv]` override (larger `--control-*`,
+`--field-pad-y` and `--stack-gap` values plus a plain-`:focus` ring) that
+re-values existing density names and adds none — it lives in ui, outside this
+package's frozen surface, so it is not vendored, hashed or parity-pinned here
+and ui may retune it without a tokens release. A `--border-w`
 scale (plus a `data-density='tv'` step) is cure-spec'd in this repo's review
 fixlog for a deliberate release — new names are frozen-surface changes, so they
 never ride a docs patch. One web-engine floor is already inside the scale: the

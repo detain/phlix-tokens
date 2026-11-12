@@ -21,6 +21,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the body single-sources "custom properties"; a new "Review-ledger codes"
   paragraph explains the `LW-###` / `w<n>L<n>` family beside the roadmap-codes
   explainer. Doc-only, no artifact change.
+- README consumer-model clauses (TOK-S7): the TV paragraph names
+  `phlix-ui/src/tokens/tv.css` as a consumer-scoped, non-frozen `[data-tv]`
+  override layer outside this package's frozen surface; the color section states
+  the law "state bg tints are authored values per theme; never re-derive them
+  from the fg hex" (daylight breaks the nocturne/midnight fg==bg RGB pattern);
+  the review-ledger paragraph names `src/*.ts` (so the shipped `dist/*.d.ts`)
+  and `vite.config.ts` as `LW-###` carriers. Doc-only, no artifact change.
 
 ## [0.2.3] - 2026-11-06
 
