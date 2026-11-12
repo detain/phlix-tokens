@@ -7,11 +7,14 @@
 
 Framework-agnostic **design tokens** for Phlix — the single source of truth
 for the web theme tokens. Inside this package the CSS, JS and JSON forms are
-generated from one source and CI-gated so they never drift (within the
-package's own forms — plugin themes may still override individual tokens at
-runtime through the server's `ThemeTokenAllowlist`, and that override layer
-lives in the theme repos, outside this package's drift gate); across the
-estate, adoption is by mechanism:
+generated from one source and CI-gated so they never drift.
+
+That guarantee covers the package's own forms only. Plugin themes may still
+override individual tokens at runtime through the server's
+`ThemeTokenAllowlist`; that override layer lives in the theme repos, outside
+this package's drift gate.
+
+Across the estate, adoption is by mechanism:
 
 - **Direct consumers:** phlix-ui (imports `@phlix/tokens/style.css` and reads
   the `./css/*` text in tests — it does not import the JS/JSON maps; pins
@@ -391,9 +394,9 @@ docblock narrated its chain-of-custody from the older tag commit
 archive — pin *provenance* drifting even when bytes don't. The v0.2.2 re-pin
 wave closed that instance (the docblock now cites the `v0.2.2` tag commit); the
 drift class is why the law below stands. Treat the sha constant's **name** as
-the living
-contract, never README lore: this section quotes no sha value, so it cannot rot
-on the next re-pin.
+the living contract, never README lore: this section quotes no live pin — the
+`5500d70b` citation above is historical narrative — so it cannot rot on the
+next re-pin.
 
 ## Scripts
 
