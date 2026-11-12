@@ -16,5 +16,10 @@ export declare const tokens: Tokens;
  * Flat resolved token map for a theme — concrete values (var() refs resolved),
  * for React Native / Roku / any non-CSS consumer. clamp()/rgba() strings are
  * preserved as-is.
+ *
+ * Density: the map carries the COMFORTABLE density values (`--control-h`,
+ * `--control-pad-x`, …), because density.css folds `comfortable` into `:root`.
+ * There is no density parameter; for compact, spread the variant over it:
+ *   `{ ...resolveTheme(name), ...tokens.density.compact }`
  */
 export declare function resolveTheme(name: ThemeName): Record<string, string>;

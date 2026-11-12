@@ -917,6 +917,11 @@ const FLAT_THEMES: Record<ThemeName, Record<string, string>> = {
  * Flat resolved token map for a theme — concrete values (var() refs resolved),
  * for React Native / Roku / any non-CSS consumer. clamp()/rgba() strings are
  * preserved as-is.
+ *
+ * Density: the map carries the COMFORTABLE density values (`--control-h`,
+ * `--control-pad-x`, …), because density.css folds `comfortable` into `:root`.
+ * There is no density parameter; for compact, spread the variant over it:
+ *   `{ ...resolveTheme(name), ...tokens.density.compact }`
  */
 export function resolveTheme(name: ThemeName): Record<string, string> {
   return { ...FLAT_THEMES[name] };

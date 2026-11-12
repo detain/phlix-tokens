@@ -39,7 +39,10 @@
  * `tokens.base` = all `:root`-scoped vars (across every css file), with var()
  * refs resolved against base only. Each theme object = the theme's own declared
  * vars resolved against (base ∪ that theme). `resolveTheme(name)` returns the
- * flat merge base ∪ theme.
+ * flat merge base ∪ theme. Because density.css folds `comfortable` into `:root`,
+ * that flat map carries the COMFORTABLE density geometry (`--control-h` etc.);
+ * there is no density parameter — a compact consumer spreads
+ * `tokens.density.compact` over it (see the emitted docblock in renderTs()).
  *
  * The @copyright line below is HAND-MAINTAINED: `npm run copyright`'s walk()
  * covers only src/ and test/, so nothing under scripts/ is ever rewritten
@@ -464,6 +467,11 @@ function renderTs({ tokens, themes }) {
     ` * Flat resolved token map for a theme — concrete values (var() refs resolved),\n` +
     ` * for React Native / Roku / any non-CSS consumer. clamp()/rgba() strings are\n` +
     ` * preserved as-is.\n` +
+    ` *\n` +
+    ` * Density: the map carries the COMFORTABLE density values (\`--control-h\`,\n` +
+    ` * \`--control-pad-x\`, …), because density.css folds \`comfortable\` into \`:root\`.\n` +
+    ` * There is no density parameter; for compact, spread the variant over it:\n` +
+    ` *   \`{ ...resolveTheme(name), ...tokens.density.compact }\`\n` +
     ` */\n` +
     `export function resolveTheme(name: ThemeName): Record<string, string> {\n` +
     `  return { ...FLAT_THEMES[name] };\n` +

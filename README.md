@@ -113,6 +113,10 @@ tokens.density.compact['--control-h']; // '2.125rem'
 tokens.shadow.nocturne['--shadow-2'];  // '0 4px 14px rgba(0, 0, 0, 0.48)'
 ```
 
+`resolveTheme()` maps carry the **comfortable** density values (`--control-h`
+etc. come from the `:root` fold); for compact, spread the variant over the flat
+map: `{ ...resolveTheme('nocturne'), ...tokens.density.compact }`.
+
 `tokens.shadow` is keyed by theme name (`Record<ThemeName, Record<string, string>>`)
 so each theme's `--shadow-*` / `--glow-*` ladder resolves correctly.
 
