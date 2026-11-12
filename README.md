@@ -43,12 +43,16 @@ zero drift between the CSS and JS/JSON forms shipped from here.
 npm i github:detain/phlix-tokens#v0.2.3
 ```
 
-Pin a tag: `phlix-tokens` is consumed by tag-pinned tarball across the estate
-(ui pins `#v0.2.1`; server vendors the `v0.2.2` archive and byte-pins
-`src/css/colors.css` — both as measured at the 2026-11-06 tree; the v0.2.3
-re-pin waves rotate them in the coordinated order below), and the bare
-`github:detain/phlix-tokens` form resolves
-the moving default branch. The npm-registry name is not published.
+Pin a tag: `phlix-tokens` is consumed by tag-pinned tarball across the estate.
+The bare `github:detain/phlix-tokens` form resolves the moving default branch.
+The npm-registry name is not published.
+
+The consumers' own manifests are the living pin truth — phlix-ui
+`package.json` (`@phlix/tokens`) and phlix-server `composer.json`
+(`detain/phlix-tokens`); this README does not track them. One dated reading:
+as measured 2026-11-12, the server vendors the `v0.2.3` tag archive and
+byte-pins `src/css/colors.css`, while ui still pins `#v0.2.1` — the ui tag-pin
+bump is the last leg of the coordinated release order below.
 
 ## Usage — web (CSS variables)
 
