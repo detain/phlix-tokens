@@ -37,7 +37,6 @@ import { dirname, join } from 'node:path';
 import { Buffer } from 'node:buffer';
 
 import {
-  THEME_NAMES,
   buildTokens,
   assertNonVacuous,
   renderJson,
@@ -101,5 +100,5 @@ for (const [path, expected] of [
 
 console.log(
   `generated ${OUT_TS} and ${OUT_JSON} — base:${Object.keys(built.tokens.base).length} ` +
-    THEME_NAMES.map((t) => `${t}:${Object.keys(built.tokens[t]).length}`).join(' '),
+    Object.keys(built.tokens.shadow).map((t) => `${t}:${Object.keys(built.tokens[t]).length}`).join(' '),
 );

@@ -54,7 +54,15 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-const THEME_NAMES = ['nocturne', 'daylight', 'midnight'];
+/**
+ * Matches a bare `[data-theme='x']` / `[data-theme="x"]` selector; group 2 is
+ * the theme name. The theme list is DERIVED from the stylesheets (see
+ * `deriveThemeNames`) rather than hand-listed here, so a theme added to or
+ * removed from src/css can never leave this generator's list stale. The TS-side
+ * union (src/themes.ts) stays hand-maintained; test/selector-twins.test.ts and
+ * test/tokens.test.ts are the drift nets that pin it to the CSS.
+ */
+const THEME_SELECTOR_RE = /^\[data-theme=(['"])([\w-]+)\1\]$/;
 const DENSITY_NAMES = ['comfortable', 'compact'];
 
 /**
@@ -119,12 +127,40 @@ function parseRules(css) {
   return out;
 }
 
-/** Classify a selector into a token group key, or null to ignore. */
-function classify(selector) {
-  if (selector === ':root') return 'base';
-  for (const t of THEME_NAMES) {
-    if (selector === `[data-theme='${t}']` || selector === `[data-theme="${t}"]`) return `theme:${t}`;
+/**
+ * Derive the theme names from the `[data-theme='…']` selectors the stylesheets
+ * declare, in first-appearance order over the name-sorted, token-carrying files
+ * (colors.css first, so the canonical nocturne, daylight, midnight order holds).
+ * Pure.
+ *
+ * @param {Array<{name: string, css: string}>} files
+ * @returns {string[]}
+ */
+function deriveThemeNames(files) {
+  const names = [];
+  const ordered = [...files].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  for (const file of ordered) {
+    if (NON_TOKEN_CSS.has(file.name)) continue;
+    for (const rule of parseRules(file.css)) {
+      for (const sel of rule.selectors) {
+        const m = THEME_SELECTOR_RE.exec(sel);
+        if (m && !names.includes(m[2])) names.push(m[2]);
+      }
+    }
   }
+  return names;
+}
+
+/**
+ * Classify a selector into a token group key, or null to ignore.
+ *
+ * @param {string} selector
+ * @param {string[]} themeNames the theme names to recognise (from `deriveThemeNames`)
+ */
+function classify(selector, themeNames) {
+  if (selector === ':root') return 'base';
+  const tm = THEME_SELECTOR_RE.exec(selector);
+  if (tm && themeNames.includes(tm[2])) return `theme:${tm[2]}`;
   for (const d of DENSITY_NAMES) {
     if (selector === `[data-density='${d}']` || selector === `[data-density="${d}"]`) return `density:${d}`;
   }
@@ -231,14 +267,10 @@ function resolveMap(rawMap, scope) {
  */
 function buildTokens(files) {
   /** raw declarations per group, last-write-wins within a group. */
-  const groups = {
-    base: {},
-    'theme:nocturne': {},
-    'theme:daylight': {},
-    'theme:midnight': {},
-    'density:comfortable': {},
-    'density:compact': {},
-  };
+  const themeNames = deriveThemeNames(files);
+  const groups = { base: {} };
+  for (const t of themeNames) groups[`theme:${t}`] = {};
+  for (const d of DENSITY_NAMES) groups[`density:${d}`] = {};
 
   /**
    * Source file for each `base` (`:root`) declaration, last-write-wins in lockstep
@@ -258,7 +290,7 @@ function buildTokens(files) {
     if (NON_TOKEN_CSS.has(file.name)) continue; // index only @imports + has reset rules (no tokens)
     for (const rule of parseRules(file.css)) {
       for (const sel of rule.selectors) {
-        const g = classify(sel);
+        const g = classify(sel, themeNames);
         if (!g) continue;
         for (const d of rule.decls) {
           groups[g][d.prop] = d.value;
@@ -273,7 +305,7 @@ function buildTokens(files) {
 
   // A theme's own declared vars resolve against base ∪ theme-raw.
   const themeResolved = {};
-  for (const t of THEME_NAMES) {
+  for (const t of themeNames) {
     const themeRaw = groups[`theme:${t}`];
     const scope = { ...groups.base, ...themeRaw };
     themeResolved[t] = resolveMap(themeRaw, scope);
@@ -314,7 +346,7 @@ function buildTokens(files) {
   // active theme instead of always the Nocturne dark ladder (CQ3). Each theme's
   // own resolved `--shadow-*` / `--glow-*` keys are surfaced.
   const shadow = {};
-  for (const t of THEME_NAMES) {
+  for (const t of themeNames) {
     shadow[t] = {};
     for (const key of Object.keys(themeResolved[t])) {
       if (key.startsWith('--shadow-') || key.startsWith('--glow-')) {
@@ -325,9 +357,7 @@ function buildTokens(files) {
 
   const tokens = {
     base: baseResolved,
-    nocturne: themeResolved.nocturne,
-    daylight: themeResolved.daylight,
-    midnight: themeResolved.midnight,
+    ...themeResolved,
     spacing,
     radius,
     shadow,
@@ -338,7 +368,7 @@ function buildTokens(files) {
 
   // Flat per-theme resolved map = base ∪ theme.
   const themes = {};
-  for (const t of THEME_NAMES) {
+  for (const t of themeNames) {
     themes[t] = { ...baseResolved, ...themeResolved[t] };
   }
 
@@ -382,6 +412,9 @@ function buildTokens(files) {
  * @param {{tokens: Record<string, unknown>, themes: Record<string, unknown>}} built
  */
 function assertNonVacuous(built) {
+  // tokens.shadow is keyed by exactly the derived theme names (buildTokens
+  // seeds one entry per theme), so it carries the list without a new field.
+  const themeNames = Object.keys(built.tokens?.shadow ?? {});
   const { tokens } = built;
   const count = (o) => Object.keys(o ?? {}).length;
 
@@ -391,7 +424,13 @@ function assertNonVacuous(built) {
         'token artifact and report success. Check that src/css/*.css still declares `:root { --… }`.',
     );
   }
-  for (const t of THEME_NAMES) {
+  if (themeNames.length === 0) {
+    throw new Error(
+      'generate-tokens: derived 0 themes — refusing to write a theme-less token artifact and ' +
+        "report success. Check that src/css/*.css still declares [data-theme='…'] { --… }.",
+    );
+  }
+  for (const t of themeNames) {
     if (count(tokens[t]) === 0) {
       throw new Error(
         `generate-tokens: theme '${t}' resolved to 0 tokens — refusing to write an empty ` +
@@ -416,7 +455,7 @@ function assertNonVacuous(built) {
     if (family === 'shadow') {
       // tokens.shadow is a PER-THEME map (CQ3), not a flat base subset, so each
       // theme's ladder is asserted separately.
-      for (const t of THEME_NAMES) {
+      for (const t of themeNames) {
         if (count(tokens.shadow?.[t]) === 0) {
           throw new Error(
             `generate-tokens: the '${t}' shadow ladder resolved to 0 tokens — refusing to ` +
@@ -450,9 +489,9 @@ function renderTs({ tokens, themes }) {
     `import type { ThemeName } from './themes.js';\n\n` +
     `export interface Tokens {\n` +
     `  base: Record<string, string>;\n` +
-    `  nocturne: Record<string, string>;\n` +
-    `  daylight: Record<string, string>;\n` +
-    `  midnight: Record<string, string>;\n` +
+    Object.keys(tokens.shadow)
+      .map((t) => `  ${t}: Record<string, string>;\n`)
+      .join('') +
     `  spacing: Record<string, string>;\n` +
     `  radius: Record<string, string>;\n` +
     `  shadow: Record<ThemeName, Record<string, string>>;\n` +
@@ -480,7 +519,7 @@ function renderTs({ tokens, themes }) {
 }
 
 export {
-  THEME_NAMES,
+  deriveThemeNames,
   DENSITY_NAMES,
   NON_TOKEN_CSS,
   FILE_FAMILY,

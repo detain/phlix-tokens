@@ -10,7 +10,7 @@
  *
  * This file declares only the surface imported from TYPESCRIPT (test/tokens.test.ts).
  * The module exports more than this — buildTokens, assertNonVacuous, renderJson,
- * renderTs, parseRules, classify, stripComments, resolveMap, THEME_NAMES,
+ * renderTs, parseRules, classify, stripComments, resolveMap, deriveThemeNames,
  * DENSITY_NAMES, NON_TOKEN_CSS, FILE_FAMILY — consumed by plain-`.mjs` callers
  * (scripts/generate-tokens.mjs, test/generate-tokens.test.mjs) that TypeScript
  * never type-checks. Add a declaration here BEFORE importing any of those from a

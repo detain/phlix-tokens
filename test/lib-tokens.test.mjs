@@ -9,6 +9,7 @@ import {
   classify,
   resolveMap,
   buildTokens,
+  deriveThemeNames,
   assertNonVacuous,
   renderJson,
   renderTs,
@@ -16,6 +17,8 @@ import {
   resolveValue,
   assertVarFallbackDepth,
 } from '../scripts/lib/tokens.mjs';
+
+const THEMES = ['nocturne', 'daylight', 'midnight'];
 
 describe('stripComments', () => {
   it('removes CSS block comments', () => {
@@ -86,9 +89,9 @@ describe('classify', () => {
   });
 
   it('classifies theme selectors', () => {
-    expect(classify("[data-theme='nocturne']")).toBe('theme:nocturne');
-    expect(classify('[data-theme="daylight"]')).toBe('theme:daylight');
-    expect(classify("[data-theme='midnight']")).toBe('theme:midnight');
+    expect(classify("[data-theme='nocturne']", THEMES)).toBe('theme:nocturne');
+    expect(classify('[data-theme="daylight"]', THEMES)).toBe('theme:daylight');
+    expect(classify("[data-theme='midnight']", THEMES)).toBe('theme:midnight');
   });
 
   it('classifies density selectors', () => {
@@ -434,11 +437,11 @@ describe('assertNonVacuous edge cases', () => {
 describe('classify edge cases', () => {
   it('returns null for selectors that partially match theme/density patterns', () => {
     // These look similar to theme selectors but aren't valid
-    expect(classify("[data-theme='unknown']")).toBeNull();
+    expect(classify("[data-theme='unknown']", THEMES)).toBeNull();
     expect(classify("[data-density='unknown']")).toBeNull();
-    expect(classify("[data-theme=nocturne]")).toBeNull(); // unquoted value
+    expect(classify("[data-theme=nocturne]", THEMES)).toBeNull(); // unquoted value
     expect(classify("[data-density=comfortable]")).toBeNull(); // unquoted value
-    expect(classify('[data-theme="nocturne"]')).toBe('theme:nocturne'); // double quotes work
+    expect(classify('[data-theme="nocturne"]', THEMES)).toBe('theme:nocturne'); // double quotes work
   });
 });
 
@@ -529,9 +532,9 @@ describe('buildTokens sort and categoryFor edge cases', () => {
   it('classify returns null for selectors that partially match but are not valid theme/density patterns', () => {
     // This tests the environment around categoryFor by verifying classify behavior
     // that leads to baseSource being populated correctly
-    expect(classify("[data-theme='unknown']")).toBeNull();
+    expect(classify("[data-theme='unknown']", THEMES)).toBeNull();
     expect(classify("[data-density='unknown']")).toBeNull();
-    expect(classify("[data-theme=nocturne]")).toBeNull(); // unquoted
+    expect(classify("[data-theme=nocturne]", THEMES)).toBeNull(); // unquoted
   });
 
   // Line 383: the ?? operator in assertNonVacuous count function
@@ -558,5 +561,25 @@ describe('buildTokens sort and categoryFor edge cases', () => {
       },
     };
     expect(() => assertNonVacuous(emptyShadowTheme)).toThrow(/daylight.*shadow ladder resolved to 0 tokens/);
+  });
+});
+
+describe('deriveThemeNames', () => {
+  it('derives names in first-appearance order across name-sorted files, folded selectors included', () => {
+    const files = [
+      { name: 'shadow.css', css: ":root, [data-theme='nocturne'] { --a: 1; }\n[data-theme=\"zed\"] { --a: 2; }\n" },
+      { name: 'colors.css', css: "[data-theme='nocturne'] { --b: 1; }\n[data-theme='daylight'] { --b: 2; }\n" },
+      { name: 'index.css', css: "[data-theme='ignored'] { --c: 1; }\n" },
+    ];
+    expect(deriveThemeNames(files)).toEqual(['nocturne', 'daylight', 'zed']);
+  });
+
+  it('is mutation-sensitive: renaming a selector changes the derived list (and the built model)', () => {
+    const css = (n) => [
+      { name: 'colors.css', css: `:root { --bg: #000; }\n[data-theme='nocturne'] { --bg: #000; }\n[data-theme='${n}'] { --bg: #fff; }\n` },
+    ];
+    expect(deriveThemeNames(css('daylight'))).toEqual(['nocturne', 'daylight']);
+    expect(deriveThemeNames(css('dayligh7'))).toEqual(['nocturne', 'dayligh7']);
+    expect(Object.keys(buildTokens(css('dayligh7')).themes)).toEqual(['nocturne', 'dayligh7']);
   });
 });

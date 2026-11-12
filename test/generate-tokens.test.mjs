@@ -283,15 +283,15 @@ describe('generate-tokens CLI — a vacuous run must exit non-zero', () => {
     expect(existsSync(tsOut(root))).toBe(false);
   });
 
-  // REGRESSION — a theme whose selector block has vanished from the CSS. The
-  // generator's THEME_NAMES list is hardcoded, so this silently emitted
-  // `tokens.midnight = {}` and every non-CSS consumer got an empty theme.
+  // REGRESSION — a theme whose selector block is present but declares nothing.
+  // The theme list is DERIVED from the CSS selectors (a wholly vanished theme is
+  // no longer a generator concern: test/selector-twins.test.ts and
+  // test/tokens.test.ts pin the TS union to the CSS), so an empty-but-declared
+  // block is the case that must still fail loud rather than emit `{}`.
   it('fails when a declared theme resolves to zero tokens', () => {
     const css = { ...MINIMAL_CSS };
     css['colors.css'] = ":root { --bg: #000; }\n[data-theme='nocturne'] { --bg: #000; }\n" +
-      "[data-theme='daylight'] { --bg: #fff; }\n"; // midnight removed
-    // midnight has to go from EVERY file that declares it: the shadow ladder
-    // would otherwise keep tokens.midnight non-empty on its own.
+      "[data-theme='daylight'] { --bg: #fff; }\n[data-theme='midnight'] { }\n";
     css['shadow.css'] = ":root, [data-theme='nocturne'] { --shadow-1: 0 1px 2px #000; }\n" +
       "[data-theme='daylight'] { --shadow-1: 0 1px 2px #ccc; }\n";
     const root = makeScratch({ css });
