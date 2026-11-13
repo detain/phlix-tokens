@@ -7,6 +7,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Changed
+- Dependency refresh: eslint 10.15; CI actions bumped to checkout@v7 and
+  setup-node@v7; `vite.config.ts` uses `import.meta.dirname` (silences Vite's
+  native-config-loader warning). TypeScript stays on 6.0.3: latest 7.0.2 is
+  outside typescript-eslint's peer range (`<6.1.0`). `npm audit`: 0.
 - Dependency upgrade: eslint 10, @eslint/js 10, typescript-eslint 8.72.2,
   vitest/@vitest/coverage-v8 5.1, vite 8.3.8, @types/node 26. TypeScript stays
   on 6.0.x because typescript-eslint's peer range is `<6.1.0` (TS 7 blocked).

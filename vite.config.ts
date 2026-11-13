@@ -13,7 +13,7 @@ export default defineConfig({
     // not by Vite (this entry has no CSS imports).
     assetsInlineLimit: 0,
     lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
+      entry: resolve(import.meta.dirname, 'src/index.ts'),
       formats: ['es', 'cjs'],
       fileName: (format) => `phlix-tokens.${format === 'es' ? 'js' : 'cjs'}`,
     },
@@ -21,7 +21,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
+      '@': resolve(import.meta.dirname, 'src'),
     },
   },
   test: {
