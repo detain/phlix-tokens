@@ -41,6 +41,7 @@ try {
 } catch (err) {
   throw new Error(
     `generate-token-reference: cannot read+parse ${SRC_JSON} (${err.message}) — run \`npm run generate\` first.`,
+    { cause: err },
   );
 }
 

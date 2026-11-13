@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Changed
+- Dependency upgrade: eslint 10, @eslint/js 10, typescript-eslint 8.72.2,
+  vitest/@vitest/coverage-v8 5.1, vite 8.3.8, @types/node 26. TypeScript stays
+  on 6.0.x because typescript-eslint's peer range is `<6.1.0` (TS 7 blocked).
+  `minimatch` is overridden to ^11.0.8 (fixes GHSA-g3hv-75wg-m249; `npm audit`
+  now reports 0). `generate-token-reference.mjs` rethrow now attaches `cause`
+  (eslint 10 `preserve-caught-error`). `dist/phlix-tokens.js` is rebuilt by the
+  newer Vite with only comment-marker differences; token values unchanged.
 - `resolveTheme()` docblock + README disclose the comfortable-density baseline
   and the compact spread recipe (TOK-S2); doc-only — `dist/tokens.generated.d.ts`
   and the two `.map` files move, bundles/`style.css`/`css/*`/`tokens.json`

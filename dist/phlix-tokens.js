@@ -1,4 +1,4 @@
-//#region src/tokens.generated.ts
+// src/tokens.generated.ts
 var e = {
 	base: {
 		"--amber-50": "#fff8ec",
@@ -895,8 +895,7 @@ var e = {
 function n(e) {
 	return { ...t[e] };
 }
-//#endregion
-//#region src/accent.ts
+// src/accent.ts
 function r(e) {
 	let t = e.trim().replace(/^#/, "");
 	return t.length === 3 && (t = t.split("").map((e) => e + e).join("")), /^[0-9a-fA-F]{6}$/.test(t) ? {
@@ -973,8 +972,7 @@ function v(e, t = "dark") {
 		"--accent-contrast": i
 	};
 }
-//#endregion
-//#region src/themes.ts
+// src/themes.ts
 var y = [
 	"nocturne",
 	"daylight",
@@ -992,7 +990,6 @@ function D(e, t) {
 	if (r) for (let [e, t] of Object.entries(r)) n.style.setProperty(e, t);
 	else for (let e of f) n.style.removeProperty(e);
 }
-//#endregion
 export { u as ACCENT_INK_DARK, d as ACCENT_INK_LIGHT, f as ACCENT_KEYS, T as DATA_DENSITY, E as DATA_REDUCED_MOTION, w as DATA_THEME, C as DEFAULT_DENSITY, S as DEFAULT_THEME, b as DENSITIES, p as LIGHT_TEXT_REFERENCE, y as THEMES, x as THEME_SCHEMES, D as applyTokenAttributes, s as darken, v as deriveAccentVars, o as lighten, l as luminance, r as parseHex, n as resolveTheme, c as rgba, a as toHex, e as tokens };
 
 //# sourceMappingURL=phlix-tokens.js.map
